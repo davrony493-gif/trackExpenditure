@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:track_expenses/providers/homePage.dart';
 import 'package:track_expenses/screens/mainscreen.dart';
 
 class SigninProvider extends ChangeNotifier {
@@ -47,9 +49,17 @@ class SigninProvider extends ChangeNotifier {
   void submitForm(BuildContext context) {
     if (formKey.currentState!.validate()) {
       FocusScope.of(context).unfocus();
+
+      final homeProvider = context.read<Homepage>();
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const Mainscreen()),
+        MaterialPageRoute(
+          builder: (context) => ChangeNotifierProvider.value(
+            value: homeProvider,
+            child: const Mainscreen(),
+          ),
+        ),
       );
     }
   }

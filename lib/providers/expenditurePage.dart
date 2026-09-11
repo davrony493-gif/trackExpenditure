@@ -1,10 +1,23 @@
+// ignore_for_file: unused_local_variable
+
+import 'dart:io';
+
 import 'package:animate_do/animate_do.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:track_expenses/consts/colors/appcolors.dart';
 import 'package:track_expenses/gen/assets.gen.dart';
+import 'package:track_expenses/models/expense_Model.dart';
+import 'package:track_expenses/providers/homePage.dart';
 import 'package:track_expenses/screens/mainscreen.dart';
+import 'package:track_expenses/service/databaseService.dart';
 
 class Expenditurepage extends ChangeNotifier {
+  File? rasm;
+
   final List<String> iconPaths = [
     Assets.icons.home,
     Assets.icons.fork,
@@ -26,6 +39,10 @@ class Expenditurepage extends ChangeNotifier {
   String amount = '0.00';
   final String currencySymbol = '\$';
 
+  final TextEditingController amountController = TextEditingController(
+    text: '0.00',
+  );
+
   bool _isExpense = true;
   bool get isExpense => _isExpense;
 
@@ -36,6 +53,17 @@ class Expenditurepage extends ChangeNotifier {
 
   String? _noteErrorText;
   String? get noteErrorText => _noteErrorText;
+
+  void updateAmount(String newAmount) {
+    amount = newAmount;
+    if (amountController.text != newAmount) {
+      amountController.value = TextEditingValue(
+        text: newAmount,
+        selection: TextSelection.collapsed(offset: newAmount.length),
+      );
+    }
+    notifyListeners();
+  }
 
   void toggleExpenseType(bool isExpense) {
     _isExpense = isExpense;
@@ -54,10 +82,23 @@ class Expenditurepage extends ChangeNotifier {
     }
   }
 
-  void saveEntry(BuildContext context) {
+  void resetForm() {
+    amount = '0.00';
+    amountController.text = '0.00';
+    notesController.clear();
+    _noteErrorText = null;
+    _selectedCategoryIndex = 0;
+    _isExpense = true;
+    rasm = null;
+    notifyListeners();
+  }
+
+  Future<void> sendIncome(BuildContext context) async {
     FocusScope.of(context).unfocus();
 
-    if (notesController.text.trim().isEmpty) {
+    final note = notesController.text.trim();
+
+    if (note.isEmpty) {
       _noteErrorText = 'Please add a note before saving';
       notifyListeners();
 
@@ -68,10 +109,89 @@ class Expenditurepage extends ChangeNotifier {
           behavior: SnackBarBehavior.floating,
         ),
       );
-    } else {
-      _noteErrorText = null;
-      notifyListeners();
+      return;
+    }
+
+    _noteErrorText = null;
+    notifyListeners();
+
+    final double parsedValue =
+        double.tryParse(
+          amountController.text.trim().isEmpty
+              ? amount
+              : amountController.text.trim(),
+        ) ??
+        0.0;
+
+    final newExpense = ExpenseModel(
+      id: 0,
+      note: note,
+      image: rasm?.path,
+      value: parsedValue,
+      isIncome: !_isExpense,
+      type: ExpenseCategory.values[_selectedCategoryIndex],
+      createdAt: DateFormat.yMMMMd().format(DateTime.now()),
+    );
+
+    await Databaseservice.addExpensesToDb(newExpense);
+
+    if (context.mounted) {
       _showSuccessDialog(context);
+    }
+  }
+
+  Future<void> pickFileFromFolder({required BuildContext context}) async {
+    try {
+      final result = await FilePicker.pickFiles(
+        dialogTitle: 'Choose File',
+        type: FileType.any,
+      );
+
+      if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
+        rasm = File(result.files.single.path!);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error-> $e');
+    }
+  }
+
+  Future<void> pickImageFromGallery() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 100,
+      );
+
+      if (pickedFile != null) {
+        rasm = File(pickedFile.path);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error -> $e');
+    }
+  }
+
+  Future<void> removeImage() async {
+    rasm = null;
+    notifyListeners();
+  }
+
+  Future<void> pickImageFromCamera() async {
+    try {
+      final picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 100,
+      );
+
+      if (pickedFile != null) {
+        rasm = File(pickedFile.path);
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error -> $e');
     }
   }
 
@@ -150,10 +270,17 @@ class Expenditurepage extends ChangeNotifier {
                         shape: const StadiumBorder(),
                       ),
                       onPressed: () {
+                        resetForm();
+
+                        final homeProvider = context.read<Homepage>();
+
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const Mainscreen(),
+                            builder: (context) => ChangeNotifierProvider.value(
+                              value: homeProvider,
+                              child: const Mainscreen(),
+                            ),
                           ),
                           (route) => false,
                         );
@@ -181,6 +308,7 @@ class Expenditurepage extends ChangeNotifier {
   @override
   void dispose() {
     notesController.dispose();
+    amountController.dispose();
     super.dispose();
   }
 }

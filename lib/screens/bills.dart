@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+// ignore: unused_import
 import 'package:track_expenses/consts/colors/appcolors.dart';
 
 class Bills extends StatefulWidget {
@@ -11,9 +12,16 @@ class Bills extends StatefulWidget {
 class _BillsState extends State<Bills> {
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      backgroundColor: Appcolors.white,
-      body: Center(child: Text('Bills')),
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Center(
+        child: Text(
+          'Bills',
+          style: TextStyle(color: theme.colorScheme.onSurface),
+        ),
+      ),
     );
   }
 }

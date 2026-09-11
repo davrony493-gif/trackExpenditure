@@ -1,10 +1,13 @@
+import 'dart:ui';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:provider/provider.dart';
 import 'package:track_expenses/consts/colors/appcolors.dart';
-import 'package:track_expenses/providers/expenditurePage.dart'; // Corrected capitalization
+import 'package:track_expenses/providers/expenditurePage.dart';
 import 'package:track_expenses/widgets/appBarOfexpenses.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path/path.dart' as path ;
 
 class Expenses extends StatelessWidget {
   const Expenses({super.key});
@@ -12,13 +15,15 @@ class Expenses extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = context.watch<Expenditurepage>();
+    final state2 = context.read<Expenditurepage>();
+    final theme = Theme.of(context);
 
     return GestureDetector(
       onTap: () {
         FocusManager.instance.primaryFocus?.unfocus();
       },
       child: Scaffold(
-        backgroundColor: Appcolors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: const Appbarofexpenses(),
         body: SingleChildScrollView(
           child: Padding(
@@ -37,44 +42,19 @@ class Expenses extends StatelessWidget {
                         fontFamily: 'Inter',
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: Appcolors.darkGrey,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.7,
+                        ),
                         letterSpacing: 1,
                       ),
                     ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                Center(
-                  child: FadeInUp(
-                    delay: const Duration(milliseconds: 200),
-                    duration: const Duration(milliseconds: 400),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Transform.translate(
-                          offset: const Offset(0, -8),
-                          child: Text(
-                            state.currencySymbol,
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: Appcolors.black,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        _buildDottedAmount(
-                          state.amount,
-                          fontSize: 48,
-                          color: Appcolors.black,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+
+                // Interactive Amount Field (Dotted Default -> Editable TextField)
+                const Center(child: InteractiveAmountInput()),
+
                 const SizedBox(height: 32),
                 Center(
                   child: FadeInUp(
@@ -84,7 +64,7 @@ class Expenses extends StatelessWidget {
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(28),
-                        color: Appcolors.contaienrColor,
+                        color: theme.colorScheme.surfaceContainerHighest,
                       ),
                       child: IntrinsicWidth(
                         child: Stack(
@@ -100,7 +80,7 @@ class Expenses extends StatelessWidget {
                                 child: Container(
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: Appcolors.black,
+                                    color: theme.colorScheme.primary,
                                     borderRadius: BorderRadius.circular(24),
                                   ),
                                 ),
@@ -131,8 +111,252 @@ class Expenses extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 20),
+                Center(
+                  child: FadeInUp(
+                    delay: const Duration(milliseconds: 350),
+                    duration: const Duration(milliseconds: 400),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        overlayColor: theme.colorScheme.primary,
+                      ),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor:
+                                theme.dialogTheme.backgroundColor ??
+                                theme.cardColor,
+                            title: Text(
+                              'Insert image from ?',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  spacing: 20,
+                                  children: [
+                                     TextButton(
+                                      style: TextButton.styleFrom(
+                                        overlayColor: Appcolors.black,
+                                      ),
+                                      onPressed: () {
+                                        state.pickFileFromFolder(context: context);
+                                        //  Navigator.pop(context);
+                                      },
+                                      child: Text(
+                                        'File',
+                                        style: TextStyle(
+                                          color: theme.colorScheme.onSurface,
+                                          fontFamily: 'Inter',
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        overlayColor: Appcolors.black,
+                                      ),
+                                      onPressed: () {
+                                        state.pickImageFromCamera();
+                                        //  Navigator.pop(context);
+                                      },
+                                      child: Text(
+                                        'Camera',
+                                        style: TextStyle(
+                                          color: theme.colorScheme.onSurface,
+                                          fontFamily: 'Inter',
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      style: TextButton.styleFrom(
+                                        overlayColor: Appcolors.black,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.pop(context);
+                                        state2.pickImageFromGallery();
+                                      },
+                                      child: Text(
+                                        'Gallery',
+                                        style: TextStyle(
+                                          color: theme.colorScheme.onSurface,
+                                          fontFamily: 'Inter',
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                TextButton(
+                                      style: TextButton.styleFrom(
+                                        overlayColor: Appcolors.black,
+                                      ),
+                                      onPressed: () {
+                                       // state.pickImageFromCamera();
+                                         Navigator.pop(context);
+                                      },
+                                      child: Text(
+                                        'Cancel',
+                                        style: TextStyle(
+                                          color: theme.colorScheme.onSurface,
+                                          fontFamily: 'Inter',
+                                        ),
+                                      ),
+                                    ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Insert Image',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+//const SizedBox(height: 28),
+                state.rasm != null
+                    ? InkWell(
+                      borderRadius: BorderRadius.circular(8),
+                        onTap: () {
+                          OpenFile.open(state.rasm!.path);
+                        },
+                        child: Card(
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(
+                             path.basename(state.rasm!.path),
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : const SizedBox(),
+                // Selected Image Preview with Hero, Blur & Cancel Badge
+                // if (state.rasm != null) ...[
+                //   Center(
+                //     child: Stack(
+                //       clipBehavior: Clip.none,
+                //       children: [
+                //         ClipRRect(
+                //           borderRadius: BorderRadius.circular(20),
+                //           child: InkWell(
+                //             borderRadius: BorderRadius.circular(20),
+                //             onTap: () {
+                //               final file = state.rasm!;
+                //               final heroTag = file.path;
 
+                //               Navigator.of(context).push(
+                //                 PageRouteBuilder(
+                //                   opaque: false,
+                //                   barrierDismissible: true,
+                //                   barrierColor: Colors.black.withValues(
+                //                     alpha: 0.25,
+                //                   ),
+                //                   transitionDuration: const Duration(
+                //                     milliseconds: 300,
+                //                   ),
+                //                   reverseTransitionDuration: const Duration(
+                //                     milliseconds: 250,
+                //                   ),
+                //                   pageBuilder:
+                //                       (context, animation, secondaryAnimation) {
+                //                         return BackdropFilter(
+                //                           filter: ImageFilter.blur(
+                //                             sigmaX: 12,
+                //                             sigmaY: 12,
+                //                           ),
+                //                           child: GestureDetector(
+                //                             onTap: () =>
+                //                                 Navigator.of(context).pop(),
+                //                             behavior: HitTestBehavior.opaque,
+                //                             child: Center(
+                //                               child: GestureDetector(
+                //                                 onTap: () {},
+                //                                 child: Hero(
+                //                                   tag: heroTag,
+                //                                   child: ClipRRect(
+                //                                     borderRadius:
+                //                                         BorderRadius.circular(
+                //                                           24,
+                //                                         ),
+                //                                     child: Image.file(
+                //                                       file,
+                //                                       height: 380,
+                //                                       width: 270,
+                //                                       fit: BoxFit.cover,
+                //                                     ),
+                //                                   ),
+                //                                 ),
+                //                               ),
+                //                             ),
+                //                           ),
+                //                         );
+                //                       },
+                //                 ),
+                //               );
+                //             },
+                //             child: Hero(
+                //               tag: state.rasm!.path,
+                //               child: Image.file(
+                //                 state.rasm!,
+                //                 height: 150,
+                //                 width: 200,
+                //                 fit: BoxFit.cover,
+                //               ),
+                //             ),
+                //           ),
+                //         ),
+                //         // Cancel / Remove Badge
+                //         Positioned(
+                //           top: -8,
+                //           right: -8,
+                //           child: GestureDetector(
+                //             onTap: () => state.removeImage(),
+                //             child: Container(
+                //               padding: const EdgeInsets.all(6),
+                //               decoration: BoxDecoration(
+                //                 color: Appcolors.black,
+                //                 shape: BoxShape.circle,
+                //                 border: Border.all(
+                //                   color: Appcolors.white,
+                //                   width: 2,
+                //                 ),
+                //                 boxShadow: [
+                //                   BoxShadow(
+                //                     color: Colors.black.withValues(alpha: 0.25),
+                //                     blurRadius: 6,
+                //                     offset: const Offset(0, 2),
+                //                   ),
+                //                 ],
+                //               ),
+                //               child: Icon(
+                //                 Icons.close_rounded,
+                //                 size: 16,
+                //                 color: Appcolors.white,
+                //               ),
+                //             ),
+                //           ),
+                //         ),
+                //       ],
+                //     ),
+                //   ),
+                //   const SizedBox(height: 10),
+                // ],
+              
+SizedBox(height: 15,),
                 FadeInUp(
                   delay: const Duration(milliseconds: 400),
                   duration: const Duration(milliseconds: 400),
@@ -142,7 +366,7 @@ class Expenses extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1.2,
-                      color: Appcolors.textColor,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -159,7 +383,6 @@ class Expenses extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
 
-                // --- CATEGORY GRID ---
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -233,12 +456,10 @@ class Expenses extends StatelessWidget {
                   },
                 ),
 
-            
                 FadeInUp(
                   delay: const Duration(milliseconds: 800),
                   duration: const Duration(milliseconds: 400),
                   child: TextField(
-                    keyboardType: const TextInputType.numberWithOptions(),
                     controller: state.notesController,
                     onChanged: (_) =>
                         context.read<Expenditurepage>().clearNoteError(),
@@ -267,10 +488,152 @@ class Expenses extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 120),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleTab({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 40,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 32.5),
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 200),
+          style: TextStyle(
+            fontFamily: 'Inter',
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+            color: isSelected ? Appcolors.white : Appcolors.textColor,
+          ),
+          child: Text(label),
+        ),
+      ),
+    );
+  }
+}
+
+//* ---------------------------------------------------------------------------
+//* Interactive Amount Input Widget
+//* ---------------------------------------------------------------------------
+class InteractiveAmountInput extends StatefulWidget {
+  const InteractiveAmountInput({super.key});
+
+  @override
+  State<InteractiveAmountInput> createState() => _InteractiveAmountInputState();
+}
+
+class _InteractiveAmountInputState extends State<InteractiveAmountInput> {
+  bool _isEditing = false;
+  late FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) {
+        setState(() {
+          _isEditing = !_isEditing;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _startEditing() {
+    final provider = context.read<Expenditurepage>();
+
+    if (provider.amountController.text == '0.00') {
+      provider.amountController.clear();
+      provider.updateAmount('');
+    }
+
+    setState(() {
+      _isEditing = true;
+    });
+    _focusNode.requestFocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = context.watch<Expenditurepage>();
+
+    return FadeInUp(
+      delay: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 400),
+      child: GestureDetector(
+        onTap: _startEditing,
+        behavior: HitTestBehavior.opaque,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Transform.translate(
+              offset: const Offset(0, -8),
+              child: Text(
+                state.currencySymbol,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: Appcolors.black,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (_isEditing)
+              IntrinsicWidth(
+                child: TextField(
+                  cursorColor: Appcolors.black,
+                  cursorHeight: 32,
+                  controller: state.amountController,
+                  focusNode: _focusNode,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  onChanged: (val) =>
+                      context.read<Expenditurepage>().updateAmount(val),
+                  style: TextStyle(
+                    fontFamily: 'Inter',
+                    fontSize: 48,
+                    fontWeight: FontWeight.w700,
+                    color: Appcolors.black,
+                  ),
+                  decoration: const InputDecoration(
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
+                ),
+              )
+            else
+              _buildDottedAmount(
+                state.amount.isEmpty ? '0.00' : state.amount,
+                fontSize: 48,
+                color: Appcolors.black,
+              ),
+          ],
         ),
       ),
     );
@@ -323,32 +686,6 @@ class Expenses extends StatelessWidget {
           ),
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildToggleTab({
-    required String label,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        height: 40,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 32.5),
-        child: AnimatedDefaultTextStyle(
-          duration: const Duration(milliseconds: 200),
-          style: TextStyle(
-            fontFamily: 'Inter',
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-            color: isSelected ? Appcolors.white : Appcolors.textColor,
-          ),
-          child: Text(label),
-        ),
-      ),
     );
   }
 }

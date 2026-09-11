@@ -102,18 +102,27 @@ class $AssetsIconsGen {
 class $AssetsImagesGen {
   const $AssetsImagesGen();
 
-  /// File path: assets/images/Main - Splash Screen Container → Brand Logo.png
-  AssetGenImage get mainSplashScreenContainerBrandLogo => const AssetGenImage(
-    'assets/images/Main - Splash Screen Container → Brand Logo.png',
-  );
+  /// File path: assets/images/logo.png
+  AssetGenImage get logo => const AssetGenImage('assets/images/logo.png');
 
   /// List of all assets
-  List<AssetGenImage> get values => [mainSplashScreenContainerBrandLogo];
+  List<AssetGenImage> get values => [logo];
+}
+
+class $AssetsLottiesGen {
+  const $AssetsLottiesGen();
+
+  /// File path: assets/lotties/nodata.json
+  String get nodata => 'assets/lotties/nodata.json';
+
+  /// List of all assets
+  List<String> get values => [nodata];
 }
 
 abstract final class Assets {
   static const $AssetsIconsGen icons = $AssetsIconsGen();
   static const $AssetsImagesGen images = $AssetsImagesGen();
+  static const $AssetsLottiesGen lotties = $AssetsLottiesGen();
 }
 
 class AssetGenImage {

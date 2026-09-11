@@ -4,14 +4,13 @@ import 'package:flutter_svg/svg.dart';
 import 'package:track_expenses/consts/colors/appcolors.dart';
 import 'package:track_expenses/gen/assets.gen.dart';
 
-class Appbarofhomescreen extends StatefulWidget  implements PreferredSizeWidget{
+class Appbarofhomescreen extends StatefulWidget implements PreferredSizeWidget {
   const Appbarofhomescreen({super.key});
 
   @override
   State<Appbarofhomescreen> createState() => _AppbarofhomescreenState();
 
   @override
-  
   Size get preferredSize => Size(double.infinity, 50);
 }
 
@@ -27,9 +26,12 @@ class _AppbarofhomescreenState extends State<Appbarofhomescreen> {
       title: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          FadeInLeft(
-            duration: const Duration(milliseconds: 400),
-            child: SvgPicture.asset(Assets.icons.menu),
+          GestureDetector(
+            onTap: () => Scaffold.of(context).openDrawer(),
+            child: FadeInLeft(
+              duration: const Duration(milliseconds: 400),
+              child: SvgPicture.asset(Assets.icons.menu),
+            ),
           ),
           FadeInDown(
             duration: const Duration(milliseconds: 400),

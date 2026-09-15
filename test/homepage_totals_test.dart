@@ -30,4 +30,10 @@ void main() {
     expect(homepage.totalIncome, '100.00');
     expect(homepage.totalOutcome, '39.00');
   });
+
+  test('music category is parsed safely from string values', () {
+    expect(ExpenseModel.parseCategory('music'), ExpenseCategory.music);
+    expect(ExpenseModel.parseCategory('unknown'), ExpenseCategory.home);
+    expect(ExpenseModel.parseCategory(null), ExpenseCategory.home);
+  });
 }

@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -7,7 +6,7 @@ import 'package:track_expenses/consts/colors/appcolors.dart';
 import 'package:track_expenses/providers/expenditurePage.dart';
 import 'package:track_expenses/widgets/appBarOfexpenses.dart';
 import 'package:open_file/open_file.dart';
-import 'package:path/path.dart' as path ;
+import 'package:path/path.dart' as path;
 
 class Expenses extends StatelessWidget {
   const Expenses({super.key});
@@ -141,13 +140,15 @@ class Expenses extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   spacing: 20,
                                   children: [
-                                     TextButton(
+                                    TextButton(
                                       style: TextButton.styleFrom(
                                         overlayColor: Appcolors.black,
                                       ),
                                       onPressed: () {
-                                        state.pickFileFromFolder(context: context);
-                                        //  Navigator.pop(context);
+                                        Navigator.of(context).pop();
+                                        state.pickFileFromFolder(
+                                          context: context,
+                                        );
                                       },
                                       child: Text(
                                         'File',
@@ -162,8 +163,8 @@ class Expenses extends StatelessWidget {
                                         overlayColor: Appcolors.black,
                                       ),
                                       onPressed: () {
+                                        Navigator.of(context).pop();
                                         state.pickImageFromCamera();
-                                        //  Navigator.pop(context);
                                       },
                                       child: Text(
                                         'Camera',
@@ -178,7 +179,7 @@ class Expenses extends StatelessWidget {
                                         overlayColor: Appcolors.black,
                                       ),
                                       onPressed: () {
-                                        Navigator.pop(context);
+                                        Navigator.of(context).pop();
                                         state2.pickImageFromGallery();
                                       },
                                       child: Text(
@@ -192,21 +193,21 @@ class Expenses extends StatelessWidget {
                                   ],
                                 ),
                                 TextButton(
-                                      style: TextButton.styleFrom(
-                                        overlayColor: Appcolors.black,
-                                      ),
-                                      onPressed: () {
-                                       // state.pickImageFromCamera();
-                                         Navigator.pop(context);
-                                      },
-                                      child: Text(
-                                        'Cancel',
-                                        style: TextStyle(
-                                          color: theme.colorScheme.onSurface,
-                                          fontFamily: 'Inter',
-                                        ),
-                                      ),
+                                  style: TextButton.styleFrom(
+                                    overlayColor: Appcolors.black,
+                                  ),
+                                  onPressed: () {
+                                    // state.pickImageFromCamera();
+                                    Navigator.pop(context);
+                                  },
+                                  child: Text(
+                                    'Cancel',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.onSurface,
+                                      fontFamily: 'Inter',
                                     ),
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -223,10 +224,9 @@ class Expenses extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 10),
-//const SizedBox(height: 28),
                 state.rasm != null
                     ? InkWell(
-                      borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(8),
                         onTap: () {
                           OpenFile.open(state.rasm!.path);
                         },
@@ -234,7 +234,7 @@ class Expenses extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.all(12.0),
                             child: Text(
-                             path.basename(state.rasm!.path),
+                              path.basename(state.rasm!.path),
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 color: theme.colorScheme.onSurface,
@@ -244,119 +244,8 @@ class Expenses extends StatelessWidget {
                         ),
                       )
                     : const SizedBox(),
-                // Selected Image Preview with Hero, Blur & Cancel Badge
-                // if (state.rasm != null) ...[
-                //   Center(
-                //     child: Stack(
-                //       clipBehavior: Clip.none,
-                //       children: [
-                //         ClipRRect(
-                //           borderRadius: BorderRadius.circular(20),
-                //           child: InkWell(
-                //             borderRadius: BorderRadius.circular(20),
-                //             onTap: () {
-                //               final file = state.rasm!;
-                //               final heroTag = file.path;
 
-                //               Navigator.of(context).push(
-                //                 PageRouteBuilder(
-                //                   opaque: false,
-                //                   barrierDismissible: true,
-                //                   barrierColor: Colors.black.withValues(
-                //                     alpha: 0.25,
-                //                   ),
-                //                   transitionDuration: const Duration(
-                //                     milliseconds: 300,
-                //                   ),
-                //                   reverseTransitionDuration: const Duration(
-                //                     milliseconds: 250,
-                //                   ),
-                //                   pageBuilder:
-                //                       (context, animation, secondaryAnimation) {
-                //                         return BackdropFilter(
-                //                           filter: ImageFilter.blur(
-                //                             sigmaX: 12,
-                //                             sigmaY: 12,
-                //                           ),
-                //                           child: GestureDetector(
-                //                             onTap: () =>
-                //                                 Navigator.of(context).pop(),
-                //                             behavior: HitTestBehavior.opaque,
-                //                             child: Center(
-                //                               child: GestureDetector(
-                //                                 onTap: () {},
-                //                                 child: Hero(
-                //                                   tag: heroTag,
-                //                                   child: ClipRRect(
-                //                                     borderRadius:
-                //                                         BorderRadius.circular(
-                //                                           24,
-                //                                         ),
-                //                                     child: Image.file(
-                //                                       file,
-                //                                       height: 380,
-                //                                       width: 270,
-                //                                       fit: BoxFit.cover,
-                //                                     ),
-                //                                   ),
-                //                                 ),
-                //                               ),
-                //                             ),
-                //                           ),
-                //                         );
-                //                       },
-                //                 ),
-                //               );
-                //             },
-                //             child: Hero(
-                //               tag: state.rasm!.path,
-                //               child: Image.file(
-                //                 state.rasm!,
-                //                 height: 150,
-                //                 width: 200,
-                //                 fit: BoxFit.cover,
-                //               ),
-                //             ),
-                //           ),
-                //         ),
-                //         // Cancel / Remove Badge
-                //         Positioned(
-                //           top: -8,
-                //           right: -8,
-                //           child: GestureDetector(
-                //             onTap: () => state.removeImage(),
-                //             child: Container(
-                //               padding: const EdgeInsets.all(6),
-                //               decoration: BoxDecoration(
-                //                 color: Appcolors.black,
-                //                 shape: BoxShape.circle,
-                //                 border: Border.all(
-                //                   color: Appcolors.white,
-                //                   width: 2,
-                //                 ),
-                //                 boxShadow: [
-                //                   BoxShadow(
-                //                     color: Colors.black.withValues(alpha: 0.25),
-                //                     blurRadius: 6,
-                //                     offset: const Offset(0, 2),
-                //                   ),
-                //                 ],
-                //               ),
-                //               child: Icon(
-                //                 Icons.close_rounded,
-                //                 size: 16,
-                //                 color: Appcolors.white,
-                //               ),
-                //             ),
-                //           ),
-                //         ),
-                //       ],
-                //     ),
-                //   ),
-                //   const SizedBox(height: 10),
-                // ],
-              
-SizedBox(height: 15,),
+                SizedBox(height: 15),
                 FadeInUp(
                   delay: const Duration(milliseconds: 400),
                   duration: const Duration(milliseconds: 400),

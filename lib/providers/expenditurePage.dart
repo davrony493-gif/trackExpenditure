@@ -7,6 +7,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:track_expenses/consts/colors/appcolors.dart';
 import 'package:track_expenses/gen/assets.gen.dart';
@@ -147,12 +149,38 @@ class Expenditurepage extends ChangeNotifier {
         type: FileType.any,
       );
 
-      if (result != null && result.files.isNotEmpty && result.files.single.path != null) {
-        rasm = File(result.files.single.path!);
-        notifyListeners();
+      if (result != null &&
+          result.files.isNotEmpty &&
+          result.files.single.path != null) {
+        final pickedFile = File(result.files.single.path!);
+        final savedPath = await _copyFileToAppDocuments(pickedFile);
+        if (savedPath != null) {
+          rasm = File(savedPath);
+          notifyListeners();
+        }
       }
     } catch (e) {
       debugPrint('Error-> $e');
+    }
+  }
+
+  Future<String?> _copyFileToAppDocuments(File sourceFile) async {
+    try {
+      final docsDir = await getApplicationDocumentsDirectory();
+      final attachmentDir = Directory(path.join(docsDir.path, 'attachments'));
+      if (!await attachmentDir.exists()) {
+        await attachmentDir.create(recursive: true);
+      }
+
+      final sanitizedName = path.basename(sourceFile.path);
+      final destination = File(path.join(attachmentDir.path, sanitizedName));
+      if (!await destination.exists()) {
+        return (await sourceFile.copy(destination.path)).path;
+      }
+      return destination.path;
+    } catch (e) {
+      debugPrint('Copy file error -> $e');
+      return null;
     }
   }
 
@@ -165,8 +193,11 @@ class Expenditurepage extends ChangeNotifier {
       );
 
       if (pickedFile != null) {
-        rasm = File(pickedFile.path);
-        notifyListeners();
+        final savedPath = await _copyFileToAppDocuments(File(pickedFile.path));
+        if (savedPath != null) {
+          rasm = File(savedPath);
+          notifyListeners();
+        }
       }
     } catch (e) {
       debugPrint('Error -> $e');
@@ -187,8 +218,11 @@ class Expenditurepage extends ChangeNotifier {
       );
 
       if (pickedFile != null) {
-        rasm = File(pickedFile.path);
-        notifyListeners();
+        final savedPath = await _copyFileToAppDocuments(File(pickedFile.path));
+        if (savedPath != null) {
+          rasm = File(savedPath);
+          notifyListeners();
+        }
       }
     } catch (e) {
       debugPrint('Error -> $e');

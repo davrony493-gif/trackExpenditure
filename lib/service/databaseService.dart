@@ -100,10 +100,7 @@ class Databaseservice {
         value: (row['value'] as num).toDouble(),
         createdAt: row['createdAt'] as String? ?? 'Empty',
         isIncome: (row['isIncome'] as int?) == 1,
-        type: ExpenseCategory.values.firstWhere(
-          (e) => e.toString() == row['type'] || e.name == row['type'],
-          orElse: () => ExpenseCategory.home,
-        ),
+        type: ExpenseModel.parseCategory(row['type']?.toString()),
       );
     });
   }

@@ -1,4 +1,5 @@
 import 'package:adaptive_theme/adaptive_theme.dart';
+import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:track_expenses/consts/themes/appthemes.dart';
@@ -7,20 +8,28 @@ import 'package:track_expenses/providers/expenditurePage.dart';
 // Expenditurepage is provided per-route; don't register globally here.
 import 'package:track_expenses/providers/homePage.dart';
 import 'package:track_expenses/providers/signin_provider.dart';
-import 'package:track_expenses/screens/expenses.dart';
-import 'package:track_expenses/screens/homescreen.dart';
 import 'package:track_expenses/screens/mainscreen.dart';
 import 'package:track_expenses/screens/onboarding.dart';
-import 'package:track_expenses/screens/splashScreen.dart';
+import 'package:track_expenses/service/audio_service.dart';
 import 'package:track_expenses/service/databaseService.dart';
-import 'package:track_expenses/widgets/incomeNdoutcome.dart';
 
 void main(List<String> args) async {
   //!The widget is very important as it plays a role of translator !
   WidgetsFlutterBinding.ensureInitialized();
+
+  audioHandler = await AudioService.init(
+    builder: () => AudioPlayerHandler(),
+    config: const AudioServiceConfig(
+      androidNotificationChannelId:
+          'com.ryanheise.audioservice.MediaButtonReceiver',
+      androidNotificationChannelName: 'Music Playback',
+      androidNotificationOngoing: true,
+    ),
+  );
   //Category76 expenseCategory = Category76.bills;
   //!The widget is very important also cuz without it doesnt operate !
   await Databaseservice.init('expenses');
+
   runApp(
     MultiProvider(
       providers: [
@@ -50,7 +59,7 @@ class MyApp extends StatelessWidget {
         theme: light,
         darkTheme: dark,
         themeMode: ThemeMode.system,
-        home: const Onboarding(),
+        home: const Mainscreen(),
       ),
     );
   }

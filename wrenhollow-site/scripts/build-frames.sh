@@ -12,19 +12,19 @@ FPS=20
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 STAGE="$(mktemp -d)"
 
-# Native height only: never upscale. Landscape for desktop, 9:16 centre crop for phones.
+# Native height only: never upscale (feed it the AI-upscaled master for sharper frames). Landscape for desktop, 9:16 crop for phones.
 H=$("$FFPROBE" -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$SRC")
 W=$("$FFPROBE" -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$SRC")
-LW=$(( W > 1440 ? 1440 : W ))
+LW=$(( W > 1280 ? 1280 : W ))   # 720p-class frames: sharp enough, still quick to download
 
 mkdir -p "$STAGE/land" "$STAGE/port"
 "$FFMPEG" -v error -i "$SRC" -an -vf "fps=$FPS,scale=$LW:-2:flags=lanczos" \
-  -c:v libwebp -quality 80 -start_number 0 "$STAGE/land/frame-%04d.webp"
+  -c:v libwebp -quality 74 -start_number 0 "$STAGE/land/frame-%04d.webp"
 # Portrait crop focus over clip time (0 = left, 0.5 = centre, 1 = right), matching the
 # `focus` values in content.js: ease right to keep the distiller at the valve in frame.
 PORTRAIT_FOCUS="if(lt(t,9.6),0.5,if(lt(t,10.4),0.5+0.22*(t-9.6)/0.8,if(lt(t,12.3),0.72,if(lt(t,12.8),0.72-0.22*(t-12.3)/0.5,0.5))))"
 "$FFMPEG" -v error -i "$SRC" -an -vf "fps=$FPS,crop=trunc(ih*9/16/2)*2:ih:'(iw-ow)*($PORTRAIT_FOCUS)':0" \
-  -c:v libwebp -quality 80 -start_number 0 "$STAGE/port/frame-%04d.webp"
+  -c:v libwebp -quality 72 -start_number 0 "$STAGE/port/frame-%04d.webp"
 
 COUNT=$(ls "$STAGE/land" | wc -l | tr -d ' ')
 PCOUNT=$(ls "$STAGE/port" | wc -l | tr -d ' ')

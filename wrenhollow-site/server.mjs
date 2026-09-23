@@ -94,6 +94,12 @@ const SYSTEM_PROMPT = buildSystemPrompt(content);
  * explain(err) turns a failure into a log line for you and a polite message for the visitor. */
 const SORRY = "Sorry, the assistant is unavailable right now. Please try again shortly.";
 
+const RETRY_DELAYS_MS = [1000, 2500]; // two retries on 5xx before giving up
+const sleep = (ms, signal) => new Promise((resolve, reject) => {
+  const t = setTimeout(resolve, ms);
+  signal.addEventListener("abort", () => { clearTimeout(t); reject(signal.reason); }, { once: true });
+});
+
 class HttpError extends Error {
   constructor(status, body) { super(`HTTP ${status}: ${body.slice(0, 300)}`); this.status = status; }
 }
@@ -108,18 +114,27 @@ function compatProvider(id) {
   return {
     label: `${svc.name} (${model})`,
     async reply(messages, signal, onText) {
-      const r = await fetch(`${base}/chat/completions`, {
-        method: "POST",
-        signal,
-        headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
-          stream: true,
-          max_tokens: 2048, // short chat replies; also caps spend per question
-        }),
+      const body = JSON.stringify({
+        model,
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        stream: true,
+        max_tokens: 2048, // short chat replies; also caps spend per question
       });
-      if (!r.ok) throw new HttpError(r.status, await r.text().catch(() => ""));
+      // Retry briefly when the service is overloaded or hiccups (nothing has been shown to the visitor yet).
+      let r;
+      for (let attempt = 0; ; attempt++) {
+        r = await fetch(`${base}/chat/completions`, {
+          method: "POST",
+          signal,
+          headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+          body,
+        });
+        if (r.ok) break;
+        const text = await r.text().catch(() => "");
+        if (attempt >= RETRY_DELAYS_MS.length || ![500, 502, 503, 504].includes(r.status)) throw new HttpError(r.status, text);
+        console.warn(`[chat] ${svc.name} busy (${r.status}), retrying…`);
+        await sleep(RETRY_DELAYS_MS[attempt], signal);
+      }
       const dec = new TextDecoder();
       let buf = "", finish = null;
       for await (const chunk of r.body) {
@@ -144,6 +159,7 @@ function compatProvider(id) {
         case 402: return { log: `${svc.name} account has insufficient balance (402): top up at ${svc.keys}`, msg: SORRY };
         case 404: return { log: `${svc.name} doesn't know model "${model}" or the URL (404): set CHAT_MODEL to a current model. ${err.message}`, msg: SORRY };
         case 429: return { log: `${svc.name} rate or free-tier limit reached (429). ${err.message}`, msg: "We're busy right now. Please try again in a minute." };
+        case 500: case 502: case 503: case 504: return { log: `${svc.name} is overloaded or down (${err.status}), still failing after retries. Usually temporary.`, msg: "We're busy right now. Please try again in a minute." };
         default: return { log: err.status ? `${svc.name} error: ${err.message}` : err, msg: SORRY };
       }
     },

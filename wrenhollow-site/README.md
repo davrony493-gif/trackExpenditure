@@ -15,6 +15,29 @@ cd wrenhollow-site
 python3 -m http.server 8080   # then open http://localhost:8080
 ```
 
+## Run it with the AI chat assistant
+
+`server.mjs` serves the same site and adds an "Ask the brewer" chat bubble powered by the Claude API
+(`claude-opus-5`). Your API key stays on the server; the browser only talks to `/api/chat`.
+
+```sh
+cd wrenhollow-site
+npm install
+ANTHROPIC_API_KEY=sk-ant-your-key npm start    # then open http://localhost:8000
+```
+
+Get a key at https://console.anthropic.com (API keys). Without a key, or when served by
+`python3 -m http.server`, the chat bubble simply doesn't appear.
+
+- The assistant only knows what's in `content.js` (beers, tours, hours, address), so edit that file and restart.
+- Replies are short and plain text. It won't take bookings; it points people to the booking form.
+- Limits: 20 questions per visitor IP per 10 minutes, 1,500 characters per message and up to 4,096 output tokens per reply.
+  Each question is one API call billed to your key.
+- Settings: `PORT` (default 8000), `HOST` (default 127.0.0.1; use 0.0.0.0 to test from your phone on
+  the same Wi-Fi), `CHAT_MODEL` (default `claude-opus-5`).
+- Refusals: requests use the API's server-side fallback (`fallbacks: "default"`), so a declined question is
+  re-run on Anthropic's recommended fallback model. If that also declines, the visitor gets a polite message.
+
 ## Files
 
 | File | What it is |
@@ -22,6 +45,8 @@ python3 -m http.server 8080   # then open http://localhost:8080
 | `index.html` | Page structure: header, fly-through stage, range, tours, process, visit/booking, footer |
 | `content.js` | **Edit this.** All copy, products, tours, hours, and the flight beat timeline |
 | `app.js` | Scroll→frame engine, chapter fades, header state, mobile menu, demo form |
+| `chat.js` | "Ask the brewer" chat widget (only shown when `server.mjs` has an API key) |
+| `server.mjs` | Node server: static files + `/api/chat` proxy to the Claude API |
 | `styles.css` | Design tokens and layout |
 | `style-tile.html` | Style tile: logo, palette, type, components, imagery direction |
 | `assets/logo-mark.svg` | Editable vector logo mark |

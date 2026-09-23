@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "fps": 20,
+  "count": 601,
+  "width": 854,
+  "height": 480,
+  "dir": "landscape/",
+  "pattern": "frame-%04d.webp",
+  "pad": 4,
+  "start": 0,
+  "poster": "../assets/poster.webp",
+  "portrait": { "count": 601, "width": 270, "height": 480, "dir": "portrait/" }
+}

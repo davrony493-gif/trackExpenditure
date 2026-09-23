@@ -53,10 +53,10 @@ JSON
 still() { "$FFMPEG" -v error -y -ss "$1" -i "$SRC" -frames:v 1 -vf "scale=$LW:-2:flags=lanczos" -c:v libwebp -quality 82 "$ROOT/assets/$2"; }
 still 0     poster.webp
 still 0     chapter-arrive.webp
-still 5     chapter-taproom.webp
-still 9.5   chapter-stills.webp
+still 4.5   chapter-taproom.webp
+still 10.5  chapter-stills.webp
 still 14.5  chapter-casks.webp
-still 19    chapter-bottling.webp
+still 18.5  chapter-bottling.webp
 still 29.8  chapter-reveal.webp
 
 rm -rf "$STAGE"

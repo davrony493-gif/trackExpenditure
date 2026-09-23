@@ -11,6 +11,20 @@ import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
+
+// Load API keys and settings from a private .env file next to this script (never served or committed).
+// Lines look like GEMINI_API_KEY=... ; anything already set in the terminal wins.
+try {
+  for (const raw of fs.readFileSync(path.join(ROOT, ".env"), "utf8").split(/\r?\n/)) {
+    const line = raw.trim().replace(/^export\s+/, "");
+    const m = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/);
+    if (!m || line.startsWith("#")) continue;
+    const value = m[2].trim().replace(/^(['"])(.*)\1$/, "$2");
+    if (process.env[m[1]] === undefined) process.env[m[1]] = value;
+  }
+} catch (err) {
+  if (err.code !== "ENOENT") console.error("[config] couldn't read .env:", err.message);
+}
 const PORT = Number(process.env.PORT) || 8000;
 const HOST = process.env.HOST || "127.0.0.1";
 // OpenAI-compatible chat services: key variable, default endpoint and model (override with

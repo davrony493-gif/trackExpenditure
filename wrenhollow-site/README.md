@@ -28,6 +28,14 @@ on the server; the browser only talks to `/api/chat`. Needs Node.js 18 or newer.
 | DeepSeek | Paid (top up) | https://platform.deepseek.com | `DEEPSEEK_API_KEY=your-key node server.mjs` |
 | Claude | Paid | https://console.anthropic.com | `npm install`, then `ANTHROPIC_API_KEY=your-key npm start` |
 
+**Easiest: keep the key in a `.env` file** in this folder (it's git-ignored and never served), so you only
+have to run `node server.mjs`:
+
+```sh
+touch .env && open -e .env        # opens it in TextEdit; add one line such as GEMINI_API_KEY=your-key, then save
+node server.mjs
+```
+
 Then open http://localhost:8000. Free tiers have rate limits, and Google may use free-tier Gemini
 requests to improve its products; check each service's terms before going live.
 

@@ -158,15 +158,21 @@
     return smooth(o);
   }
 
-  /* ---------------- Frames ---------------- */
+  /* ---------------- Frames ----------------
+   * Every frame is downloaded once (compressed blobs are small), nearest to the current position first,
+   * then the rest in the background so fast scrolling never outruns the network. Only frames near the
+   * current position are decoded into bitmaps, which keeps memory low on phones. */
   const frames = {
-    manifest: null, count: 0, fps: 20, base: "", version: "1",
-    cache: new Map(),           // idx -> ImageBitmap | HTMLImageElement
-    inflight: new Map(),        // idx -> AbortController
+    manifest: null, count: 0, fps: 20, base: "", version: "1", seq: 0,
+    blobs: new Map(),           // idx -> Blob (compressed, kept)
+    bitmaps: new Map(),         // idx -> ImageBitmap | HTMLImageElement (decoded, bounded)
+    fetching: new Map(),        // idx -> AbortController
+    decoding: new Set(),
     failures: new Map(),
-    maxCache: 90, maxInflight: 6,
-    current: -1, drawn: -1, dir: 1, lastIdx: 0,
+    maxBitmaps: 72, maxFetch: 6, maxDecode: 3, background: true,
+    current: 0, dir: 1, drawn: -1, drawnFocus: -1, dirty: true,
   };
+  const NEAR_AHEAD = 36, NEAR_BEHIND = 12;
 
   function frameUrl(i) {
     const num = String(i + (frames.manifest.start || 0)).padStart(frames.manifest.pad || 4, "0");
@@ -181,85 +187,121 @@
     return img;
   }
 
-  function release(img) { if (img && typeof img.close === "function") img.close(); }
+  function release(img) {
+    if (!img) return;
+    if (typeof img.close === "function") img.close();
+    else if (img.src && img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
+  }
 
-  function evict(center) {
-    if (frames.cache.size <= frames.maxCache) return;
-    const keys = [...frames.cache.keys()].sort((a, b) => Math.abs(b - center) - Math.abs(a - center));
-    while (frames.cache.size > frames.maxCache && keys.length) {
-      const k = keys.shift();
+  /** Frames to have decoded right now: the current one, then ahead in the scroll direction, then just behind. */
+  function nearWindow() {
+    const c = frames.current, d = frames.dir, n = frames.count, out = [c];
+    for (let k = 1; k <= NEAR_AHEAD; k++) {
+      out.push(c + d * k);
+      if (k <= NEAR_BEHIND) out.push(c - d * k);
+    }
+    return out.filter((i) => i >= 0 && i < n);
+  }
+
+  function evictBitmaps() {
+    if (frames.bitmaps.size <= frames.maxBitmaps) return;
+    const c = frames.current;
+    const far = [...frames.bitmaps.keys()].sort((a, b) => Math.abs(b - c) - Math.abs(a - c));
+    while (frames.bitmaps.size > frames.maxBitmaps && far.length) {
+      const k = far.shift();
       if (k === frames.drawn) continue;
-      release(frames.cache.get(k));
-      frames.cache.delete(k);
+      release(frames.bitmaps.get(k));
+      frames.bitmaps.delete(k);
     }
   }
 
-  function load(i) {
-    const ctl = new AbortController();
-    frames.inflight.set(i, ctl);
+  function fetchFrame(i) {
+    const seq = frames.seq, ctl = new AbortController();
+    frames.fetching.set(i, ctl);
     fetch(frameUrl(i), { signal: ctl.signal })
       .then((r) => { if (!r.ok) throw new Error(r.status); return r.blob(); })
-      .then(decode)
-      .then((img) => {
-        if (!frames.manifest) { release(img); return; }
-        frames.cache.set(i, img);
-        frames.failures.delete(i);
-        evict(frames.current);
-        if (Math.abs(i - frames.current) <= 12) requestDraw();
-      })
-      .catch((err) => {
-        if (err.name !== "AbortError") frames.failures.set(i, (frames.failures.get(i) || 0) + 1);
-      })
-      .finally(() => { frames.inflight.delete(i); pump(); });
+      .then((blob) => { if (seq === frames.seq) { frames.blobs.set(i, blob); frames.failures.delete(i); } })
+      .catch((err) => { if (err.name !== "AbortError" && seq === frames.seq) frames.failures.set(i, (frames.failures.get(i) || 0) + 1); })
+      .finally(() => { if (seq === frames.seq) { frames.fetching.delete(i); pump(); } });
   }
 
-  /** request the frame needed now, then prefetch in the scroll direction */
+  function decodeFrame(i) {
+    const seq = frames.seq;
+    frames.decoding.add(i);
+    decode(frames.blobs.get(i))
+      .then((img) => {
+        if (seq !== frames.seq) { release(img); return; }
+        frames.bitmaps.set(i, img);
+        evictBitmaps();
+        if (Math.abs(i - frames.current) <= 12) { frames.dirty = true; requestDraw(); }
+      })
+      .catch(() => { if (seq === frames.seq) frames.blobs.delete(i); }) // corrupt download: fetch it again
+      .finally(() => { if (seq === frames.seq) { frames.decoding.delete(i); pump(); } });
+  }
+
   function pump() {
     if (!frames.manifest) return;
-    const c = frames.current, n = frames.count, d = frames.dir;
-    const want = [c];
-    for (let k = 1; k <= 30; k++) {
-      want.push(c + d * k);
-      if (k <= 8) want.push(c - d * k);
+    const near = nearWindow();
+    // 1. decode what's close and already downloaded
+    for (const i of near) {
+      if (frames.decoding.size >= frames.maxDecode) break;
+      if (frames.blobs.has(i) && !frames.bitmaps.has(i) && !frames.decoding.has(i)) decodeFrame(i);
     }
-    const wanted = new Set(want.filter((i) => i >= 0 && i < n));
-    for (const [i, ctl] of frames.inflight) if (!wanted.has(i)) { ctl.abort(); frames.inflight.delete(i); }
-    for (const i of wanted) {
-      if (frames.inflight.size >= frames.maxInflight) break;
-      if (frames.cache.has(i) || frames.inflight.has(i)) continue;
+    // 2. download: near frames first, then (in the background) everything else, outward from here
+    const queue = near.slice();
+    if (frames.background && frames.blobs.size >= Math.min(24, frames.count)) {
+      const c = frames.current;
+      for (let k = 1; k < frames.count; k++) { queue.push(c + frames.dir * k, c - frames.dir * k); }
+    }
+    for (const i of queue) {
+      if (frames.fetching.size >= frames.maxFetch) break;
+      if (i < 0 || i >= frames.count || frames.blobs.has(i) || frames.fetching.has(i)) continue;
       if ((frames.failures.get(i) || 0) >= 3) continue;
-      load(i);
+      fetchFrame(i);
     }
   }
 
-  function nearestCached(i) {
-    if (frames.cache.has(i)) return i;
-    for (let k = 1; k < 24; k++) {
-      if (frames.cache.has(i - k * frames.dir)) return i - k * frames.dir;
-      if (frames.cache.has(i + k * frames.dir)) return i + k * frames.dir;
+  function nearestDecoded(i) {
+    if (frames.bitmaps.has(i)) return i;
+    for (let k = 1; k < 30; k++) {
+      if (frames.bitmaps.has(i - k * frames.dir)) return i - k * frames.dir;
+      if (frames.bitmaps.has(i + k * frames.dir)) return i + k * frames.dir;
     }
     return -1;
   }
 
+  function resetFrames() {
+    frames.seq++;
+    for (const ctl of frames.fetching.values()) ctl.abort();
+    frames.fetching.clear(); frames.decoding.clear(); frames.failures.clear();
+    for (const img of frames.bitmaps.values()) release(img);
+    frames.bitmaps.clear(); frames.blobs.clear();
+    frames.manifest = null; frames.drawn = -1; frames.dirty = true;
+  }
+
   function sizeCanvas() {
-    const dpr = Math.min(devicePixelRatio || 1, 2);
+    // 1.5× is plenty for video frames and far cheaper to redraw than 2–3× (text is HTML, so it stays sharp).
+    const dpr = Math.min(devicePixelRatio || 1, 1.5);
     const w = Math.round(stage.clientWidth * dpr), h = Math.round(stage.clientHeight * dpr);
-    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; frames.drawn = -1; }
+    if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; frames.dirty = true; }
   }
 
   function draw(idx, focus) {
-    const k = nearestCached(idx);
+    const k = nearestDecoded(idx);
     if (k < 0) return;
-    const img = frames.cache.get(k);
+    if (!frames.dirty && k === frames.drawn && Math.abs(focus - frames.drawnFocus) < 0.001) return; // nothing changed
+    const img = frames.bitmaps.get(k);
     const cw = canvas.width, ch = canvas.height;
     const fw = img.width, fh = img.height;
     const s = Math.max(cw / fw, ch / fh);
     const dw = fw * s, dh = fh * s;
     const x = (cw - dw) * clamp(focus, 0, 1);
     const y = (ch - dh) / 2;
-    ctx.imageSmoothingQuality = "high";
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = s > 1.6 ? "medium" : "low";
     ctx.drawImage(img, x, y, dw, dh);
-    frames.drawn = k;
+    frames.drawn = k; frames.drawnFocus = focus; frames.dirty = false;
+    stage.dataset.shown = k;
     if (!stage.classList.contains("is-live")) stage.classList.add("is-live");
   }
 
@@ -309,11 +351,7 @@
     for (const art of Object.values(chapterEls)) {
       art.removeAttribute("inert"); art.removeAttribute("aria-hidden"); art.style.opacity = "";
     }
-    for (const img of frames.cache.values()) release(img);
-    frames.cache.clear();
-    for (const ctl of frames.inflight.values()) ctl.abort();
-    frames.inflight.clear();
-    frames.manifest = null;
+    resetFrames();
   }
 
   async function initFlight() {
@@ -335,8 +373,12 @@
       frames.fps = m.fps;
       frames.version = String(m.version || "1");
       frames.base = new URL(seq.dir || m.dir || "./", new URL(url, location.href)).href;
-      frames.maxCache = phoneMQ.matches ? 60 : 90;
-      frames.current = -1;
+      frames.maxBitmaps = phoneMQ.matches || portraitMQ.matches ? 36 : 72;
+      // Respect Data Saver: only fetch frames near the current position, not the whole sequence.
+      frames.background = !(navigator.connection && navigator.connection.saveData);
+      frames.current = clamp(Math.round(timeAt(scrollPos()) * frames.fps), 0, frames.count - 1);
+      frames.dirty = true;
+      pump();
       requestDraw();
     } catch (e) {
       console.warn("[wrenhollow] fly-through frames unavailable, using stills", e);
@@ -446,7 +488,7 @@
     if (!timeline) return;
     buildTimeline();
     if (!hOnly) layout(); else sizeCanvas();
-    frames.drawn = -1;
+    frames.dirty = true;
     requestDraw(); updateHeader();
   }
   addEventListener("resize", onResize);
@@ -454,11 +496,7 @@
   // switching between phone/desktop or portrait/landscape: drop the old sequence before loading the right one
   function reloadSequence() {
     if (flight.classList.contains("is-static")) return;
-    for (const ctl of frames.inflight.values()) ctl.abort();
-    frames.inflight.clear();
-    for (const img of frames.cache.values()) release(img);
-    frames.cache.clear();
-    frames.manifest = null;
+    resetFrames();
     initFlight();
   }
   phoneMQ.addEventListener("change", reloadSequence);

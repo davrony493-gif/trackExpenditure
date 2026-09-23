@@ -1,17 +1,19 @@
-// Wrenhollow — static site server + Claude chat assistant.
-//   ANTHROPIC_API_KEY=sk-ant-... npm start      → http://localhost:8000
+// Wrenhollow — static site server + AI chat assistant (DeepSeek or Claude).
+//   DEEPSEEK_API_KEY=sk-...        node server.mjs   → http://localhost:8000   (no npm install needed)
+//   ANTHROPIC_API_KEY=sk-ant-...   npm start          (Claude; run `npm install` first)
 // The API key stays on this server; the browser only talks to /api/chat.
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
-import Anthropic from "@anthropic-ai/sdk";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 8000;
 const HOST = process.env.HOST || "127.0.0.1";
-const MODEL = process.env.CHAT_MODEL || "claude-opus-5";
+// Which AI answers the chat: CHAT_PROVIDER=deepseek|claude, or picked from whichever key is set.
+const PROVIDER = (process.env.CHAT_PROVIDER ||
+  (process.env.DEEPSEEK_API_KEY ? "deepseek" : process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN ? "claude" : "")).toLowerCase();
 
 // Abuse limits for a public chat box.
 const MAX_TURNS = 20;            // messages kept from the conversation
@@ -55,14 +57,114 @@ function buildSystemPrompt(C) {
     "- You can't take or confirm bookings. Point people to the \"Book a tasting\" form in the Visit section of this page (it is a demo form and doesn't send yet).",
     "- Stick to Wrenhollow, its drinks, tours and visiting. Politely steer other topics back.",
     "- Encourage responsible drinking. Tastings are for over-18s; don't give drinking advice to anyone who says they're under 18.",
-    "- Latency-sensitive; begin your visible answer immediately.",
   ];
   return lines.join("\n");
 }
 
 const content = loadContent();
 const SYSTEM_PROMPT = buildSystemPrompt(content);
-const client = process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN ? new Anthropic() : null;
+
+/* ---------------- Chat providers ----------------
+ * Each provider streams a reply: reply(messages, signal, onText) → { refused }.
+ * explain(err) turns a failure into a log line for you and a polite message for the visitor. */
+const SORRY = "Sorry, the assistant is unavailable right now. Please try again shortly.";
+
+class HttpError extends Error {
+  constructor(status, body) { super(`HTTP ${status}: ${body.slice(0, 300)}`); this.status = status; }
+}
+
+// DeepSeek: OpenAI-compatible Chat Completions over plain fetch (Node 18+), streamed as server-sent events.
+function deepseekProvider() {
+  const key = process.env.DEEPSEEK_API_KEY;
+  if (!key) { console.error("[chat] CHAT_PROVIDER=deepseek but DEEPSEEK_API_KEY is not set"); return null; }
+  const base = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
+  const model = process.env.CHAT_MODEL || "deepseek-chat";
+  return {
+    label: `DeepSeek (${model})`,
+    async reply(messages, signal, onText) {
+      const r = await fetch(`${base}/chat/completions`, {
+        method: "POST",
+        signal,
+        headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+          stream: true,
+          max_tokens: 2048, // short chat replies; also caps spend per question
+        }),
+      });
+      if (!r.ok) throw new HttpError(r.status, await r.text().catch(() => ""));
+      const dec = new TextDecoder();
+      let buf = "", finish = null;
+      for await (const chunk of r.body) {
+        buf += dec.decode(chunk, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf("\n")) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line.startsWith("data:")) continue; // skip blank lines and ": keep-alive" comments
+          const data = line.slice(5).trim();
+          if (data === "[DONE]") return { refused: finish === "content_filter" };
+          const choice = JSON.parse(data).choices?.[0];
+          if (choice?.delta?.content) onText(choice.delta.content); // reasoning_content (reasoner models) is not shown
+          if (choice?.finish_reason) finish = choice.finish_reason;
+        }
+      }
+      return { refused: finish === "content_filter" };
+    },
+    explain(err) {
+      switch (err.status) {
+        case 401: return { log: "DeepSeek rejected the API key (401)", msg: SORRY };
+        case 402: return { log: "DeepSeek account has insufficient balance (402): top up at platform.deepseek.com", msg: SORRY };
+        case 429: return { log: "DeepSeek rate limit (429)", msg: "We're busy right now. Please try again in a minute." };
+        default: return { log: err.status ? `DeepSeek error: ${err.message}` : err, msg: SORRY };
+      }
+    },
+  };
+}
+
+// Claude: official Anthropic SDK (loaded only when used, so DeepSeek needs no npm install).
+async function claudeProvider() {
+  let Anthropic;
+  try { ({ default: Anthropic } = await import("@anthropic-ai/sdk")); }
+  catch { console.error("[chat] Claude needs the Anthropic SDK: run `npm install` in wrenhollow-site"); return null; }
+  const client = new Anthropic();
+  const model = process.env.CHAT_MODEL || "claude-opus-5";
+  return {
+    label: `Claude (${model})`,
+    async reply(messages, signal, onText) {
+      const stream = client.beta.messages.stream({
+        model,
+        max_tokens: 4096, // short chat replies; also caps spend per question
+        thinking: { type: "adaptive" },
+        output_config: { effort: "low" },
+        // Server-side refusal fallback: a declined request is re-run on Anthropic's recommended model.
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        system: [{ type: "text", text: SYSTEM_PROMPT + "\n- Latency-sensitive; begin your visible answer immediately.", cache_control: { type: "ephemeral" } }],
+        messages,
+      });
+      signal.addEventListener("abort", () => stream.abort());
+      for await (const event of stream) {
+        if (event.type === "content_block_delta" && event.delta.type === "text_delta") onText(event.delta.text);
+      }
+      const final = await stream.finalMessage();
+      return { refused: final.stop_reason === "refusal" };
+    },
+    explain(err) {
+      if (err instanceof Anthropic.AuthenticationError) return { log: "invalid Anthropic API key", msg: SORRY };
+      if (err instanceof Anthropic.RateLimitError) return { log: "rate limited by the Claude API", msg: "We're busy right now. Please try again in a minute." };
+      if (err instanceof Anthropic.BadRequestError) return { log: `bad request: ${err.message}`, msg: SORRY };
+      if (err instanceof Anthropic.APIError) return { log: `Claude API error ${err.status}: ${err.message}`, msg: SORRY };
+      return { log: err, msg: SORRY };
+    },
+  };
+}
+
+const chat = PROVIDER === "deepseek" ? deepseekProvider()
+  : PROVIDER === "claude" ? await claudeProvider()
+  : null;
+if (PROVIDER && !["deepseek", "claude"].includes(PROVIDER)) console.error(`[chat] unknown CHAT_PROVIDER "${PROVIDER}" (use deepseek or claude)`);
 
 /* ---------------- Helpers ---------------- */
 const hits = new Map(); // ip -> timestamps
@@ -114,7 +216,7 @@ function json(res, status, body) {
 
 /* ---------------- /api/chat ---------------- */
 async function handleChat(req, res) {
-  if (!client) return json(res, 503, { error: "The chat assistant isn't configured on this server." });
+  if (!chat) return json(res, 503, { error: "The chat assistant isn't configured on this server." });
   const ip = req.socket.remoteAddress || "unknown";
   if (rateLimited(ip)) return json(res, 429, { error: "That's a lot of questions! Please try again in a few minutes." });
 
@@ -127,39 +229,18 @@ async function handleChat(req, res) {
   res.writeHead(200, { "content-type": "application/x-ndjson; charset=utf-8", "cache-control": "no-store", "x-accel-buffering": "no" });
   const send = (obj) => res.write(JSON.stringify(obj) + "\n");
 
-  const stream = client.beta.messages.stream({
-    model: MODEL,
-    max_tokens: 4096, // short chat replies; also caps spend per question
-    thinking: { type: "adaptive" },
-    output_config: { effort: "low" },
-    // Server-side refusal fallback: a declined request is re-run on Anthropic's recommended model.
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
-    system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-    messages,
-  });
-
-  let clientGone = false;
-  res.on("close", () => { if (!res.writableEnded) { clientGone = true; stream.abort(); } });
+  // Stop the upstream request if the visitor closes the chat mid-reply.
+  const ac = new AbortController();
+  res.on("close", () => { if (!res.writableEnded) ac.abort(); });
 
   try {
-    for await (const event of stream) {
-      if (event.type === "content_block_delta" && event.delta.type === "text_delta") send({ t: "text", v: event.delta.text });
-    }
-    const final = await stream.finalMessage();
-    if (final.stop_reason === "refusal") {
-      send({ t: "error", v: "Sorry, I can't help with that one. Ask me about our beers, spirits, tours or visiting." });
-    } else {
-      send({ t: "done" });
-    }
+    const { refused } = await chat.reply(messages, ac.signal, (text) => send({ t: "text", v: text }));
+    if (refused) send({ t: "error", v: "Sorry, I can't help with that one. Ask me about our beers, spirits, tours or visiting." });
+    else send({ t: "done" });
   } catch (err) {
-    if (clientGone) return;
-    let msg = "Sorry, the assistant is unavailable right now. Please try again shortly.";
-    if (err instanceof Anthropic.AuthenticationError) console.error("[chat] invalid API key");
-    else if (err instanceof Anthropic.RateLimitError) { console.error("[chat] rate limited by API"); msg = "We're busy right now. Please try again in a minute."; }
-    else if (err instanceof Anthropic.BadRequestError) console.error("[chat] bad request:", err.message);
-    else if (err instanceof Anthropic.APIError) console.error(`[chat] API error ${err.status}:`, err.message);
-    else console.error("[chat] error:", err);
+    if (ac.signal.aborted) return;
+    const { log, msg } = chat.explain(err);
+    console.error("[chat]", log);
     send({ t: "error", v: msg });
   }
   res.end();
@@ -195,12 +276,12 @@ function serveStatic(req, res) {
 /* ---------------- Server ---------------- */
 http.createServer((req, res) => {
   const { pathname } = new URL(req.url, "http://x");
-  if (pathname === "/api/chat/status" && req.method === "GET") return json(res, 200, { enabled: !!client });
+  if (pathname === "/api/chat/status" && req.method === "GET") return json(res, 200, { enabled: !!chat });
   if (pathname === "/api/chat" && req.method === "POST") return void handleChat(req, res);
   if (pathname.startsWith("/api/")) return json(res, 404, { error: "Not found" });
   if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405).end(); return; }
   serveStatic(req, res);
 }).listen(PORT, HOST, () => {
   console.log(`Wrenhollow running at http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}`);
-  console.log(client ? `Chat assistant on (${MODEL}).` : "Chat assistant off: set ANTHROPIC_API_KEY to turn it on.");
+  console.log(chat ? `Chat assistant on: ${chat.label}.` : "Chat assistant off: set DEEPSEEK_API_KEY (or ANTHROPIC_API_KEY) to turn it on.");
 });

@@ -17,26 +17,40 @@ python3 -m http.server 8080   # then open http://localhost:8080
 
 ## Run it with the AI chat assistant
 
-`server.mjs` serves the same site and adds an "Ask the brewer" chat bubble powered by the Claude API
-(`claude-opus-5`). Your API key stays on the server; the browser only talks to `/api/chat`.
+`server.mjs` serves the same site and adds an "Ask the brewer" chat bubble. It can use
+**DeepSeek** (default when a DeepSeek key is set) or **Claude**. Your API key stays on the server;
+the browser only talks to `/api/chat`. Needs Node.js 18 or newer.
+
+**DeepSeek** (no `npm install` needed):
 
 ```sh
 cd wrenhollow-site
-npm install
-ANTHROPIC_API_KEY=sk-ant-your-key npm start    # then open http://localhost:8000
+DEEPSEEK_API_KEY=sk-your-deepseek-key node server.mjs    # then open http://localhost:8000
 ```
 
-Get a key at https://console.anthropic.com (API keys). Without a key, or when served by
-`python3 -m http.server`, the chat bubble simply doesn't appear.
+Get a key at https://platform.deepseek.com (API keys). The account needs a topped-up balance.
+
+**Claude** (optional):
+
+```sh
+npm install
+ANTHROPIC_API_KEY=sk-ant-your-key npm start
+```
+
+Without a key, or when served by `python3 -m http.server`, the chat bubble simply doesn't appear.
 
 - The assistant only knows what's in `content.js` (beers, tours, hours, address), so edit that file and restart.
 - Replies are short and plain text. It won't take bookings; it points people to the booking form.
-- Limits: 20 questions per visitor IP per 10 minutes, 1,500 characters per message and up to 4,096 output tokens per reply.
-  Each question is one API call billed to your key.
-- Settings: `PORT` (default 8000), `HOST` (default 127.0.0.1; use 0.0.0.0 to test from your phone on
-  the same Wi-Fi), `CHAT_MODEL` (default `claude-opus-5`).
-- Refusals: requests use the API's server-side fallback (`fallbacks: "default"`), so a declined question is
-  re-run on Anthropic's recommended fallback model. If that also declines, the visitor gets a polite message.
+- Limits: 20 questions per visitor IP per 10 minutes and 1,500 characters per message. Replies are capped
+  at 2,048 tokens on DeepSeek and 4,096 on Claude. Each question is one paid API call on your account.
+- Settings:
+  - `CHAT_PROVIDER` is `deepseek` or `claude`. If it isn't set, DeepSeek is used when its key is set.
+  - `CHAT_MODEL` defaults to `deepseek-chat` / `claude-opus-5`.
+  - `DEEPSEEK_BASE_URL` defaults to `https://api.deepseek.com`.
+  - `PORT` defaults to 8000.
+  - `HOST` defaults to 127.0.0.1. Use 0.0.0.0 to test from your phone on the same Wi-Fi.
+- If the server can't reach DeepSeek, it prints the reason in the terminal. For example, 401 is a wrong key
+  and 402 is an account that needs topping up. Visitors only see a polite "unavailable" message.
 
 ## Files
 
@@ -46,7 +60,7 @@ Get a key at https://console.anthropic.com (API keys). Without a key, or when se
 | `content.js` | **Edit this.** All copy, products, tours, hours, and the flight beat timeline |
 | `app.js` | Scroll→frame engine, chapter fades, header state, mobile menu, demo form |
 | `chat.js` | "Ask the brewer" chat widget (only shown when `server.mjs` has an API key) |
-| `server.mjs` | Node server: static files + `/api/chat` proxy to the Claude API |
+| `server.mjs` | Node server: static files + `/api/chat` proxy to DeepSeek or Claude |
 | `styles.css` | Design tokens and layout |
 | `style-tile.html` | Style tile: logo, palette, type, components, imagery direction |
 | `assets/logo-mark.svg` | Editable vector logo mark |

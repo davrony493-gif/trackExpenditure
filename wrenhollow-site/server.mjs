@@ -26,7 +26,10 @@ try {
   if (err.code !== "ENOENT") console.error("[config] couldn't read .env:", err.message);
 }
 const PORT = Number(process.env.PORT) || 8000;
-const HOST = process.env.HOST || "127.0.0.1";
+// On a hosting platform, listen on all interfaces and trust its proxy for the visitor's IP.
+const HOSTED = !!(process.env.RENDER || process.env.RAILWAY_ENVIRONMENT || process.env.FLY_APP_NAME);
+const HOST = process.env.HOST || (HOSTED ? "0.0.0.0" : "127.0.0.1");
+const TRUST_PROXY = process.env.TRUST_PROXY ? process.env.TRUST_PROXY === "1" : HOSTED;
 // OpenAI-compatible chat services: key variable, default endpoint and model (override with
 // <NAME>_BASE_URL and CHAT_MODEL if a service renames things).
 const COMPAT = {
@@ -45,6 +48,7 @@ const MAX_TURNS = 20;            // messages kept from the conversation
 const MAX_CHARS = 1500;          // per visitor message
 const RATE_LIMIT = 20;           // requests per IP…
 const RATE_WINDOW_MS = 10 * 60 * 1000; // …per 10 minutes
+const GLOBAL_LIMIT = Number(process.env.CHAT_HOURLY_LIMIT) || 300; // all visitors together, per hour (protects your AI quota)
 
 /* ---------------- System prompt from content.js ---------------- */
 function loadContent() {
@@ -211,12 +215,31 @@ if (PROVIDER && !COMPAT[PROVIDER] && PROVIDER !== "claude") console.error(`[chat
 
 /* ---------------- Helpers ---------------- */
 const hits = new Map(); // ip -> timestamps
+let globalHits = [];
 function rateLimited(ip) {
   const now = Date.now();
+  globalHits = globalHits.filter((t) => now - t < 60 * 60 * 1000);
+  if (globalHits.length >= GLOBAL_LIMIT) return "global";
   const recent = (hits.get(ip) || []).filter((t) => now - t < RATE_WINDOW_MS);
+  if (recent.length >= RATE_LIMIT) { hits.set(ip, recent); return "ip"; }
   recent.push(now);
   hits.set(ip, recent);
-  return recent.length > RATE_LIMIT;
+  globalHits.push(now);
+  return false;
+}
+// Forget idle visitors so the map can't grow forever on a public site.
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, ts] of hits) if (!ts.some((t) => now - t < RATE_WINDOW_MS)) hits.delete(ip);
+}, RATE_WINDOW_MS).unref();
+
+/** Visitor IP: behind a hosting proxy use the first X-Forwarded-For entry, otherwise the socket address. */
+function clientIp(req) {
+  if (TRUST_PROXY) {
+    const fwd = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+    if (fwd) return fwd;
+  }
+  return req.socket.remoteAddress || "unknown";
 }
 
 function readJson(req, limit = 64 * 1024) {
@@ -260,8 +283,9 @@ function json(res, status, body) {
 /* ---------------- /api/chat ---------------- */
 async function handleChat(req, res) {
   if (!chat) return json(res, 503, { error: "The chat assistant isn't configured on this server." });
-  const ip = req.socket.remoteAddress || "unknown";
-  if (rateLimited(ip)) return json(res, 429, { error: "That's a lot of questions! Please try again in a few minutes." });
+  const limited = rateLimited(clientIp(req));
+  if (limited === "global") console.warn(`[chat] hourly limit of ${GLOBAL_LIMIT} questions reached (CHAT_HOURLY_LIMIT)`);
+  if (limited) return json(res, 429, { error: "That's a lot of questions! Please try again in a few minutes." });
 
   let body;
   try { body = await readJson(req); } catch { return json(res, 400, { error: "Bad request." }); }
@@ -342,7 +366,19 @@ function serveStatic(req, res) {
 }
 
 /* ---------------- Server ---------------- */
+const SECURITY_HEADERS = {
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "x-frame-options": "SAMEORIGIN",
+  "permissions-policy": "camera=(), microphone=(), geolocation=()",
+};
+
 http.createServer((req, res) => {
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) res.setHeader(k, v);
+  if (TRUST_PROXY && req.headers["x-forwarded-proto"] === "http" && process.env.FORCE_HTTPS !== "0") {
+    res.writeHead(301, { location: `https://${req.headers.host}${req.url}` });
+    return res.end();
+  }
   const { pathname } = new URL(req.url, "http://x");
   if (pathname === "/api/chat/status" && req.method === "GET") return json(res, 200, { enabled: !!chat });
   if (pathname === "/api/config" && req.method === "GET") return json(res, 200, { accounts: accountsConfig && fs.existsSync(SUPABASE_BUNDLE) ? accountsConfig : null });

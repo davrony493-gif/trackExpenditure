@@ -1,0 +1,20 @@
+# Render Blueprint for the Wrenhollow website (wrenhollow-site/).
+# Render → New → Blueprint → pick this repo and branch. It asks for the three secret values below.
+services:
+  - type: web
+    name: wrenhollow
+    runtime: node
+    plan: free
+    rootDir: wrenhollow-site
+    buildCommand: npm install
+    startCommand: node server.mjs
+    healthCheckPath: /api/chat/status
+    envVars:
+      - key: GEMINI_API_KEY          # free key from aistudio.google.com/apikey
+        sync: false
+      - key: SUPABASE_URL            # https://your-project-id.supabase.co
+        sync: false
+      - key: SUPABASE_ANON_KEY       # Supabase → Project Settings → API Keys → Publishable key
+        sync: false
+      - key: CHAT_HOURLY_LIMIT       # chat questions per hour across all visitors
+        value: "300"

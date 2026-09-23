@@ -99,6 +99,35 @@ status, cancel them, and collect loyalty stamps. Accounts run on [Supabase](http
 - Account deletion is handled on request by email (see `privacy.html`). A self-service delete button would need
   a small server function.
 
+## Put it online (Render)
+
+The repo includes a `render.yaml` blueprint for [Render](https://render.com)'s free plan.
+
+1. Sign up at https://render.com with your GitHub account.
+2. Click **New → Blueprint**, pick the `trackExpenditure` repository and the branch with the site,
+   and click **Connect**. Render reads `render.yaml`.
+3. Fill in the secret values it asks for: `GEMINI_API_KEY`, `SUPABASE_URL` and `SUPABASE_ANON_KEY`.
+   Use a fresh Gemini key, not one that has been shared anywhere. Then click **Apply** / **Deploy**.
+4. Wait for the build (a few minutes the first time). Your site is at `https://wrenhollow.onrender.com`,
+   or the name Render shows you.
+5. In **Supabase → Authentication → URL Configuration**, change **Site URL** to your Render address and
+   add `https://your-app.onrender.com/**` under **Redirect URLs**. Keep the localhost entries if you still
+   test on your Mac.
+
+Good to know:
+- **Keys:** `.env` is only on your Mac and is never uploaded. Online, the keys live in Render's
+  **Environment** settings.
+- **Updates:** every push to the deployed branch redeploys the site automatically.
+- **Sleeping:** free Render sites go to sleep after about 15 minutes without visitors. The next visit
+  takes up to a minute to wake it. A paid instance stays awake.
+- **Limits:** chat is capped at 20 questions per visitor per 10 minutes and `CHAT_HOURLY_LIMIT` (default 300)
+  for everyone together, to protect your free AI quota.
+- **Security:** the server adds security headers and redirects http to https when hosted.
+- **Custom domain:** add it under **Settings → Custom Domains** in Render, then add it to Supabase's
+  URL settings as well.
+- **Not a real business:** Wrenhollow's products, prices, address and privacy notice are placeholders.
+  Replace them before presenting the site as a real business.
+
 ## Files
 
 | File | What it is |

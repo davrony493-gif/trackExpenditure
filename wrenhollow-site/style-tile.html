@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wrenhollow Style Tile</title>
+  <link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { background: var(--parchment); }
+    .tile { width: min(1200px, 100% - 32px); margin: 40px auto; display: grid; grid-template-columns: 1.1fr 1fr; gap: 20px; }
+    .panel { border-radius: 18px; padding: 32px; border: 1px solid var(--line-light); background: #FBF6EC; }
+    .panel.dark { background: var(--ink); color: var(--text-light); border-color: transparent; }
+    .panel h2 { font-size: 1rem; font-family: var(--font-body); letter-spacing: .16em; text-transform: uppercase; color: var(--copper); margin-bottom: 20px; }
+    .logo-lockup { display: flex; align-items: center; gap: 18px; color: var(--copper); }
+    .logo-lockup img { width: 96px; height: 96px; }
+    .logo-lockup .n { font-family: var(--font-display); font-size: 2.8rem; font-weight: 700; color: var(--text-light); line-height: 1; letter-spacing: .02em; }
+    .logo-lockup .s { font-size: .75rem; letter-spacing: .26em; text-transform: uppercase; color: var(--text-muted-light); margin-top: 6px; }
+    .swatches { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .sw { border-radius: 12px; height: 92px; padding: 10px; display: flex; flex-direction: column; justify-content: flex-end; font-size: .75rem; font-weight: 600; }
+    .type-h { font-family: var(--font-display); font-size: 3.2rem; line-height: 1; font-weight: 600; }
+    .type-b { margin-top: 14px; max-width: 46ch; color: var(--text-muted-dark); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .imagery { grid-column: 1 / -1; }
+    .imagery p { color: var(--text-muted-light); max-width: 80ch; }
+    .imagery ul { margin: 16px 0 0; padding-left: 18px; color: var(--text-muted-light); }
+    @media (max-width: 820px) { .tile { grid-template-columns: 1fr; } .swatches { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <main class="tile">
+    <section class="panel dark">
+      <h2>Logo</h2>
+      <div class="logo-lockup">
+        <img src="assets/logo-mark.svg" alt="Wrenhollow mark">
+        <div><div class="n">Wrenhollow</div><div class="s">Brewery &amp; Distillery</div></div>
+      </div>
+      <p style="margin-top:20px;color:var(--text-muted-light);font-size:.9rem">The editable SVG mark (a wren on a pot still's lyne arm, with barley) is based on the generated logo concept in <code>assets/logo-concept.png</code>.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Colour</h2>
+      <div class="swatches">
+        <div class="sw" style="background:#15180F;color:#F3EBDD">Hop-dark<br>#15180F</div>
+        <div class="sw" style="background:#B8733A;color:#fff">Copper<br>#B8733A</div>
+        <div class="sw" style="background:#D6A84A;color:#15180F">Barley<br>#D6A84A</div>
+        <div class="sw" style="background:#5E7A78;color:#fff">River<br>#5E7A78</div>
+        <div class="sw" style="background:#F3EBDD;color:#15180F;border:1px solid var(--line-light)">Parchment<br>#F3EBDD</div>
+        <div class="sw" style="background:#E9DECB;color:#15180F">Parchment 2<br>#E9DECB</div>
+        <div class="sw" style="background:#1F2418;color:#F3EBDD">Ink 2<br>#1F2418</div>
+        <div class="sw" style="background:#FBF6EC;color:#15180F;border:1px solid var(--line-light)">Card<br>#FBF6EC</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Type</h2>
+      <div class="type-h">Copper &amp; steam</div>
+      <p class="type-b">Headings in Fraunces 600, a warm, old-style serif with a slightly cut edge. Body copy in Manrope 400/600: plain, open and easy to read over footage.</p>
+      <p class="eyebrow" style="margin-top:18px">Eyebrow · 02 — The Still House</p>
+    </section>
+
+    <section class="panel dark">
+      <h2>Components</h2>
+      <div class="row">
+        <a class="btn btn-primary" href="#">Book a tasting</a>
+        <a class="btn btn-ghost" href="#">See what’s pouring</a>
+        <a href="#" style="color:var(--barley)">Text link →</a>
+      </div>
+      <div class="tour is-featured" style="margin-top:28px">
+        <span class="badge">Most booked</span>
+        <h3>Still House Tour</h3>
+        <div class="meta"><span>90 min</span><strong>£32</strong></div>
+        <p>Walk the whole route in the film: brewhouse, stills, warehouse and bottling line.</p>
+      </div>
+    </section>
+
+    <section class="panel dark imagery">
+      <h2>Imagery direction</h2>
+      <p>Cinematic, first-person, one continuous take. Warm amber interiors (tungsten, copper, oak) against a cool blue dusk outside. Working details over staged product shots: steam, moving bottles, stacked casks. No visible signage or third-party branding.</p>
+      <ul>
+        <li>Start still: a red-brick barn at dusk with its green arched door open onto the bar.</li>
+        <li>Reveal still: a high aerial over the barn, orchards, barley fields and the river.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

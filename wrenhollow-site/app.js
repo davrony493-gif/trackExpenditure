@@ -391,7 +391,7 @@
     const form = $("#booking"), status = $("#booking-status");
     const date = $("#b-date");
     date.min = new Date().toISOString().slice(0, 10);
-    form.addEventListener("submit", (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
       let firstBad = null;
       for (const f of form.querySelectorAll("[required]")) {
@@ -400,6 +400,29 @@
         if (bad && !firstBad) firstBad = f;
       }
       if (firstBad) { status.textContent = "Please fill in your name, a valid email and a date."; firstBad.focus(); return; }
+
+      // Member accounts on (account.js): logged-in members save a real booking request.
+      const acct = window.wrenAccount;
+      if (acct && acct.isSignedIn()) {
+        const submit = form.querySelector("[type=submit]");
+        submit.disabled = true;
+        status.textContent = "Sending your request…";
+        const res = await acct.submitBooking({
+          experience: C.tours[$("#b-tour").selectedIndex]?.name || $("#b-tour").value,
+          date: date.value,
+          guests: Number($("#b-guests").value),
+        });
+        submit.disabled = false;
+        status.textContent = res.ok
+          ? "Request saved! You'll see it in My account, where its status changes once the team confirms it."
+          : res.error;
+        return;
+      }
+      if (acct) {
+        status.textContent = "Please log in or create an account to send a booking request.";
+        acct.openSignIn(form.querySelector("[type=submit]"));
+        return;
+      }
       status.textContent = "Demo only: this request was not sent. Connect a booking service to take real bookings.";
     });
   }

@@ -295,7 +295,25 @@ const TYPES = {
   ".mjs": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".svg": "image/svg+xml",
   ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".mp4": "video/mp4", ".md": "text/plain; charset=utf-8",
 };
-const PRIVATE = new Set(["server.mjs", "package.json", "package-lock.json", "node_modules", ".env"]);
+const PRIVATE = new Set(["server.mjs", "package.json", "package-lock.json", "node_modules", ".env", "supabase"]);
+
+/* ---------------- Member accounts (Supabase) ----------------
+ * The project URL and the public "anon" key are designed to be used in the browser; Row Level Security
+ * in supabase/schema.sql is what protects the data. Never put the service_role key here. */
+function isSecretKey(key) {
+  if (key.startsWith("sb_secret_")) return true;
+  try { return JSON.parse(Buffer.from(key.split(".")[1] || "", "base64url").toString()).role === "service_role"; }
+  catch { return false; }
+}
+let accountsConfig = null;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+  if (isSecretKey(process.env.SUPABASE_ANON_KEY)) {
+    console.error("[accounts] SUPABASE_ANON_KEY is a secret (service_role) key. Use the anon / publishable key instead; accounts are off.");
+  } else {
+    accountsConfig = { url: process.env.SUPABASE_URL.replace(/\/+$/, ""), anonKey: process.env.SUPABASE_ANON_KEY };
+  }
+}
+const SUPABASE_BUNDLE = path.join(ROOT, "node_modules/@supabase/supabase-js/dist/umd/supabase.js");
 
 function serveStatic(req, res) {
   let rel;
@@ -320,6 +338,14 @@ function serveStatic(req, res) {
 http.createServer((req, res) => {
   const { pathname } = new URL(req.url, "http://x");
   if (pathname === "/api/chat/status" && req.method === "GET") return json(res, 200, { enabled: !!chat });
+  if (pathname === "/api/config" && req.method === "GET") return json(res, 200, { accounts: accountsConfig && fs.existsSync(SUPABASE_BUNDLE) ? accountsConfig : null });
+  if (pathname === "/vendor/supabase.js" && req.method === "GET") {
+    return fs.stat(SUPABASE_BUNDLE, (err, st) => {
+      if (err) return json(res, 404, { error: "Run npm install to enable accounts." });
+      res.writeHead(200, { "content-type": "text/javascript; charset=utf-8", "content-length": st.size, "cache-control": "public, max-age=86400" });
+      fs.createReadStream(SUPABASE_BUNDLE).pipe(res);
+    });
+  }
   if (pathname === "/api/chat" && req.method === "POST") return void handleChat(req, res);
   if (pathname.startsWith("/api/")) return json(res, 404, { error: "Not found" });
   if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405).end(); return; }
@@ -327,4 +353,7 @@ http.createServer((req, res) => {
 }).listen(PORT, HOST, () => {
   console.log(`Wrenhollow running at http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}`);
   console.log(chat ? `Chat assistant on: ${chat.label}.` : "Chat assistant off: set GEMINI_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY or ANTHROPIC_API_KEY to turn it on.");
+  if (!accountsConfig) console.log("Member accounts off: set SUPABASE_URL and SUPABASE_ANON_KEY to turn them on.");
+  else if (!fs.existsSync(SUPABASE_BUNDLE)) console.log("Member accounts off: run npm install first.");
+  else console.log(`Member accounts on: ${accountsConfig.url}`);
 });

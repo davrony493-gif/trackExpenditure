@@ -57,6 +57,48 @@ Without a key, or when served by `python3 -m http.server`, the chat bubble simpl
   needs topping up, 404 is an unknown model, and 429 is a rate or free-tier limit. Visitors only see a
   polite "unavailable" message.
 
+## Member accounts (Supabase)
+
+Visitors can create an account, log in, reset a forgotten password, save booking requests, see their
+status, cancel them, and collect loyalty stamps. Accounts run on [Supabase](https://supabase.com)
+(free tier), which stores passwords securely and sends the confirmation and reset emails.
+**Row Level Security** means each member can only ever read or change their own data.
+
+**One-time setup:**
+
+1. Create a free account at https://supabase.com and click **New project**. Choose a name and a
+   database password, and pick the region closest to you.
+2. Open **SQL Editor**, click **New query**, paste everything from `supabase/schema.sql`, and click **Run**.
+3. Go to **Authentication → URL Configuration**. Set **Site URL** to `http://localhost:8000` and add
+   `http://localhost:8000/**` under **Redirect URLs**. Change these to your real web address when the site goes live.
+4. Go to **Project Settings → API Keys** (or **API**). Copy the **Project URL** and the **anon / publishable**
+   key. Never use the `service_role` / secret key; the server refuses it.
+5. Add them to your `.env` file (`open -e .env`):
+   ```
+   SUPABASE_URL=https://your-project-id.supabase.co
+   SUPABASE_ANON_KEY=your-anon-or-publishable-key
+   ```
+6. Run `npm install` (once), then `node server.mjs`. The terminal should say `Member accounts on: …`, and a
+   **Log in** button appears in the header.
+
+**Running it day to day (for staff, in the Supabase dashboard):**
+
+- **Confirm or decline bookings:** in **Table Editor → bookings**, change a row's `status` to `confirmed`
+  or `cancelled`. Members see the change under My account.
+- **Stamp a loyalty card:** find the member's id under **Authentication → Users**, then in
+  **Table Editor → stamps** click **Insert row** and paste that id into `user_id`. Every 10 stamps
+  shows as a free Tasting Flight. This reward is a placeholder; change `STAMPS_FOR_REWARD` in `account.js`.
+- **Marketing list:** in **Table Editor → profiles**, filter `marketing_opt_in = true`.
+
+**Before launch:**
+
+- Supabase's built-in email sender is only meant for testing and sends a limited number of emails per hour.
+  Add your own email service under **Authentication → Emails → SMTP settings**.
+- Edit `privacy.html`: it's a placeholder with a placeholder contact address.
+- New booking requests don't notify staff yet. Check the bookings table, or ask for a notification to be added.
+- Account deletion is handled on request by email (see `privacy.html`). A self-service delete button would need
+  a small server function.
+
 ## Files
 
 | File | What it is |
@@ -65,6 +107,9 @@ Without a key, or when served by `python3 -m http.server`, the chat bubble simpl
 | `content.js` | **Edit this.** All copy, products, tours, hours, and the flight beat timeline |
 | `app.js` | Scroll→frame engine, chapter fades, header state, mobile menu, demo form |
 | `chat.js` | "Ask the brewer" chat widget (only shown when `server.mjs` has an API key) |
+| `account.js` | Member accounts: log in, sign up, password reset, My account (only shown when Supabase is set up) |
+| `supabase/schema.sql` | Database tables and Row Level Security rules to run once in Supabase |
+| `privacy.html` | Privacy notice (placeholder) linked from the sign-up form |
 | `server.mjs` | Node server: static files + `/api/chat` proxy to Gemini, Groq, DeepSeek or Claude |
 | `styles.css` | Design tokens and layout |
 | `style-tile.html` | Style tile: logo, palette, type, components, imagery direction |

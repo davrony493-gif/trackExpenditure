@@ -15,6 +15,7 @@
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
   const phoneMQ = matchMedia("(max-width: 760px), (max-height: 500px) and (orientation: landscape)");
   const portraitMQ = matchMedia("(orientation: portrait)");
+  const menuMQ = matchMedia("(max-width: 1023px), (max-height: 500px) and (orientation: landscape)"); // header collapses into the menu
 
   /* ---------------- Page content ---------------- */
   function renderContent() {
@@ -88,7 +89,7 @@
   let vhPx = innerHeight;
 
   function buildTimeline() {
-    const phone = phoneMQ.matches;
+    const phone = phoneMQ.matches || portraitMQ.matches; // phones and upright tablets use the shorter touch pacing
     let acc = 0;
     const beats = C.flight.beats.map((b) => {
       const len = phone && b.mvh != null ? b.mvh : b.vh;
@@ -278,7 +279,9 @@
         frames.current = idx;
         pump();
       }
-      draw(idx, phoneMQ.matches && !frames.manifest.preCropped ? focusAt(pos) : 0.5);
+      // Tall screens (phones, upright tablets) crop the sides, so follow each beat's focus point.
+      const tall = canvas.width < canvas.height * 1.1;
+      draw(idx, tall && !frames.manifest.preCropped ? focusAt(pos) : 0.5);
       stage.dataset.frame = idx;
     }
 
@@ -383,7 +386,7 @@
         else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
       }
     });
-    phoneMQ.addEventListener("change", (e) => { if (!e.matches && !menu.hidden) shut(false); });
+    menuMQ.addEventListener("change", (e) => { if (!e.matches && !menu.hidden) shut(false); });
   }
 
   /* ---------------- Booking form (demo) ---------------- */

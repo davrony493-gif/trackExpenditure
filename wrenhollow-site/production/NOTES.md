@@ -81,6 +81,11 @@ no text, logos or signage.
   in any section, the header turned solid after the flight, and chapter copy sat low over the scrim.
   The menu opened with focus on its close button, locked page scrolling, closed on Escape (returning focus to
   the menu button) and closed after a link was tapped. Anchors landed below the fixed header.
+- **Tablets 768×1024, 820×1180, 1024×1366 (upright) and 1024×768, 1180×820, 1366×1024 (landscape):** no
+  sideways overflow and no wrapped header text. Below 1024px wide, the header collapses into the ☰ menu while keeping
+  "Book a tasting" and the account button. Upright tablets anchor chapter copy low over a scrim, use the shorter
+  touch scroll pacing, and follow the same per-beat crop focus as phones, so the distiller stays in frame. The menu,
+  sign-up dialog and chat were checked at 768×1024.
 - **Reduced motion:** static chapter sections and no frame requests on desktop or phone.
 - **Not measured:** real network loading speed and real-device (iOS/Android) scrolling feel. Google Fonts
   didn't load in the headless test (proxy certificate), so screenshots show fallback fonts.

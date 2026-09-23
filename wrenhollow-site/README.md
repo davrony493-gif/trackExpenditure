@@ -42,8 +42,14 @@ npm i -g ffmpeg-static ffprobe-static   # if ffmpeg isn't installed
 FFMPEG=$(which ffmpeg) FFPROBE=$(which ffprobe) scripts/build-frames.sh flythrough-master.mp4
 ```
 
-Until `frames/manifest.json` exists, or when a visitor prefers reduced motion, the site shows each
+If `frames/manifest.json` is missing, or when a visitor prefers reduced motion, the site shows each
 chapter as a normal section over its still image instead of running the animation.
+
+## Mobile
+
+It's one responsive site. Phones get a fixed glass header with a menu, chapter copy anchored low over a
+scrim, a shorter scroll timeline (`mvh` per beat) and a pre-cropped portrait frame sequence cut from the same
+master. No separate mobile video exists.
 
 ## Before launch
 

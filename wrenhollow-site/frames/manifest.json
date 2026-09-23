@@ -1,5 +1,5 @@
 {
-  "version": "v1",
+  "version": "v2",
   "fps": 20,
   "count": 601,
   "width": 854,
@@ -9,5 +9,5 @@
   "pad": 4,
   "start": 0,
   "poster": "../assets/poster.webp",
-  "portrait": { "count": 601, "width": 270, "height": 480, "dir": "portrait/" }
+  "portrait": { "count": 601, "width": 270, "height": 480, "dir": "portrait/", "focusBaked": true }
 }

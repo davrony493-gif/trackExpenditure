@@ -53,13 +53,40 @@ See the `f6015120…` job in Higgsfield for the full text. It describes a first-
 "drone"), gives timed manoeuvres for each scene, states that nothing appears or disappears, and asks for
 no text, logos or signage.
 
-## Status / limitations
+## Footage review
 
-- Downloads from Higgsfield's CDN (`d8j0ntlcm91z4.cloudfront.net`) are blocked by this build
-  environment's network policy, so the real footage, stills and raster logo **have not been downloaded,
-  inspected or integrated yet**. The site runs in its static fallback until `frames/` is built.
-- The scroll engine was verified with a synthetic 30 s test video run through the same
-  `build-frames.sh` pipeline. At 1440×900 every beat reached its intended frame (0 → 599), chapters showed
-  on their beats, the header switched glass→solid at the end of the flight, and there was no horizontal
-  overflow.
-- Scene timings in `content.js` follow the prompt's plan and need checking against the real clip.
+- Contact sheet and scene-cut detection (`gt(scene,0.3)` and `0.15`): **no hidden cuts**, no stray drones or
+  objects, and no pop-ins. The route reads as planned: door 0–2 s, bar 2–7 s, copper still and steam 7–10 s,
+  distiller at the valve 10–12.5 s, cask aisle 12.5–16.5 s, bottling line 16.5–20.5 s, loading bay and 180° yaw
+  20.5–24.5 s, backward climb over orchards, fields and river 24.5–30 s.
+- There's one copper pot still plus a steel vessel (not two stills), and the copy has been corrected to match.
+- A painted "21" is visible on a machine on the bottling line. It isn't a brand mark, so it was left in.
+- No repairs were needed. The master is the raw clip (`production/flythrough-master.mp4`).
+
+## Frames
+
+- 601 frames at 20 fps. Landscape frames are 854×480 WebP (≈22 MB). Portrait frames are 270×480 WebP (≈8.6 MB)
+  and are used only by phones held upright.
+- The portrait crop eases right (focus 0.72) from 10 to 12.5 s so the distiller at the valve stays in frame.
+  The same focus is stored in `content.js` (the `valve` beat) and baked into the portrait sequence by
+  `scripts/build-frames.sh` (`PORTRAIT_FOCUS`).
+
+## Checks performed (headless Chromium)
+
+- **Desktop 1440×900:** every beat reached its intended frame (0 → 600), chapters showed on their beats,
+  the header went glass → solid at the end of the flight and back again when scrolling up, and nothing
+  overflowed sideways. Re-checked after the mobile changes.
+- **Phones 360×740, 375×812, 390×844, 430×932 (portrait) and 844×390 (landscape):** phones held upright
+  requested only portrait frames and the landscape phone only landscape frames. There was no sideways overflow
+  in any section, the header turned solid after the flight, and chapter copy sat low over the scrim.
+  The menu opened with focus on its close button, locked page scrolling, closed on Escape (returning focus to
+  the menu button) and closed after a link was tapped. Anchors landed below the fixed header.
+- **Reduced motion:** static chapter sections and no frame requests on desktop or phone.
+- **Not measured:** real network loading speed and real-device (iOS/Android) scrolling feel. Google Fonts
+  didn't load in the headless test (proxy certificate), so screenshots show fallback fonts.
+
+## Known limitations
+
+- The footage is 480p (budget), so it looks soft full-screen on large or high-DPI displays.
+- On phones the opening frame is cropped inside the doorway (the arch is wider than a 9:16 crop), so the
+  first screen reads as looking into the bar rather than at the whole door.

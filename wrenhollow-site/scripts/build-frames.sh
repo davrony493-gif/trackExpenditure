@@ -20,7 +20,10 @@ LW=$(( W > 1440 ? 1440 : W ))
 mkdir -p "$STAGE/land" "$STAGE/port"
 "$FFMPEG" -v error -i "$SRC" -an -vf "fps=$FPS,scale=$LW:-2:flags=lanczos" \
   -c:v libwebp -quality 80 -start_number 0 "$STAGE/land/frame-%04d.webp"
-"$FFMPEG" -v error -i "$SRC" -an -vf "fps=$FPS,crop=trunc(ih*9/16/2)*2:ih" \
+# Portrait crop focus over clip time (0 = left, 0.5 = centre, 1 = right), matching the
+# `focus` values in content.js: ease right to keep the distiller at the valve in frame.
+PORTRAIT_FOCUS="if(lt(t,9.6),0.5,if(lt(t,10.4),0.5+0.22*(t-9.6)/0.8,if(lt(t,12.3),0.72,if(lt(t,12.8),0.72-0.22*(t-12.3)/0.5,0.5))))"
+"$FFMPEG" -v error -i "$SRC" -an -vf "fps=$FPS,crop=trunc(ih*9/16/2)*2:ih:'(iw-ow)*($PORTRAIT_FOCUS)':0" \
   -c:v libwebp -quality 80 -start_number 0 "$STAGE/port/frame-%04d.webp"
 
 COUNT=$(ls "$STAGE/land" | wc -l | tr -d ' ')
@@ -45,7 +48,7 @@ cat > "$ROOT/frames/manifest.json" <<JSON
   "pad": 4,
   "start": 0,
   "poster": "../assets/poster.webp",
-  "portrait": { "count": $PCOUNT, "width": $PW, "height": $H, "dir": "portrait/" }
+  "portrait": { "count": $PCOUNT, "width": $PW, "height": $H, "dir": "portrait/", "focusBaked": true }
 }
 JSON
 

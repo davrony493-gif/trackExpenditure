@@ -13,7 +13,8 @@
   const smooth = (t) => t * t * (3 - 2 * t);
 
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)");
-  const phoneMQ = matchMedia("(max-width: 760px)");
+  const phoneMQ = matchMedia("(max-width: 760px), (max-height: 500px) and (orientation: landscape)");
+  const portraitMQ = matchMedia("(orientation: portrait)");
 
   /* ---------------- Page content ---------------- */
   function renderContent() {
@@ -324,7 +325,7 @@
       const m = await r.json();
       // phones take the pre-cropped portrait sequence unless a beat needs an off-centre focus
       const needsFocus = C.flight.beats.some((b) => b.focus != null && b.focus !== 0.5);
-      const usePortrait = phoneMQ.matches && m.portrait && !needsFocus;
+      const usePortrait = phoneMQ.matches && portraitMQ.matches && m.portrait && (m.portrait.focusBaked || !needsFocus);
       const seq = usePortrait ? m.portrait : m;
       frames.manifest = { ...seq, preCropped: usePortrait, pattern: seq.pattern || m.pattern, pad: seq.pad || m.pad, start: seq.start ?? m.start };
       frames.count = seq.count;
@@ -424,8 +425,8 @@
   }
   addEventListener("resize", onResize);
   addEventListener("orientationchange", onResize);
-  // switching between phone and desktop: drop the old sequence before loading the right one
-  phoneMQ.addEventListener("change", () => {
+  // switching between phone/desktop or portrait/landscape: drop the old sequence before loading the right one
+  function reloadSequence() {
     if (flight.classList.contains("is-static")) return;
     for (const ctl of frames.inflight.values()) ctl.abort();
     frames.inflight.clear();
@@ -433,6 +434,8 @@
     frames.cache.clear();
     frames.manifest = null;
     initFlight();
-  });
+  }
+  phoneMQ.addEventListener("change", reloadSequence);
+  portraitMQ.addEventListener("change", () => { if (phoneMQ.matches) reloadSequence(); });
   reduceMotion.addEventListener("change", (e) => { if (e.matches) goStatic(); });
 })();

@@ -18,39 +18,36 @@ python3 -m http.server 8080   # then open http://localhost:8080
 ## Run it with the AI chat assistant
 
 `server.mjs` serves the same site and adds an "Ask the brewer" chat bubble. It can use
-**DeepSeek** (default when a DeepSeek key is set) or **Claude**. Your API key stays on the server;
-the browser only talks to `/api/chat`. Needs Node.js 18 or newer.
+**Google Gemini** or **Groq** (both have free API keys), **DeepSeek**, or **Claude**. Your key stays
+on the server; the browser only talks to `/api/chat`. Needs Node.js 18 or newer.
 
-**DeepSeek** (no `npm install` needed):
+| Service | Free? | Get a key | Start command (no `npm install` needed) |
+| --- | --- | --- | --- |
+| Google Gemini | Free tier | https://aistudio.google.com/apikey | `GEMINI_API_KEY=your-key node server.mjs` |
+| Groq | Free tier | https://console.groq.com/keys | `GROQ_API_KEY=your-key node server.mjs` |
+| DeepSeek | Paid (top up) | https://platform.deepseek.com | `DEEPSEEK_API_KEY=your-key node server.mjs` |
+| Claude | Paid | https://console.anthropic.com | `npm install`, then `ANTHROPIC_API_KEY=your-key npm start` |
 
-```sh
-cd wrenhollow-site
-DEEPSEEK_API_KEY=sk-your-deepseek-key node server.mjs    # then open http://localhost:8000
-```
-
-Get a key at https://platform.deepseek.com (API keys). The account needs a topped-up balance.
-
-**Claude** (optional):
-
-```sh
-npm install
-ANTHROPIC_API_KEY=sk-ant-your-key npm start
-```
+Then open http://localhost:8000. Free tiers have rate limits, and Google may use free-tier Gemini
+requests to improve its products; check each service's terms before going live.
 
 Without a key, or when served by `python3 -m http.server`, the chat bubble simply doesn't appear.
 
 - The assistant only knows what's in `content.js` (beers, tours, hours, address), so edit that file and restart.
 - Replies are short and plain text. It won't take bookings; it points people to the booking form.
-- Limits: 20 questions per visitor IP per 10 minutes and 1,500 characters per message. Replies are capped
-  at 2,048 tokens on DeepSeek and 4,096 on Claude. Each question is one paid API call on your account.
+- Limits: 20 questions per visitor IP per 10 minutes and 1,500 characters per message. Replies are
+  capped at 2,048 tokens (4,096 on Claude).
 - Settings:
-  - `CHAT_PROVIDER` is `deepseek` or `claude`. If it isn't set, DeepSeek is used when its key is set.
-  - `CHAT_MODEL` defaults to `deepseek-chat` / `claude-opus-5`.
-  - `DEEPSEEK_BASE_URL` defaults to `https://api.deepseek.com`.
+  - `CHAT_PROVIDER` is `gemini`, `groq`, `deepseek` or `claude`. If it isn't set, the first service
+    whose key is set is used, in that order.
+  - `CHAT_MODEL` sets the model. Defaults: `gemini-2.5-flash`, `llama-3.3-70b-versatile`, `deepseek-chat`,
+    `claude-opus-5`. Change it if a service renames its models.
+  - `GEMINI_BASE_URL`, `GROQ_BASE_URL` and `DEEPSEEK_BASE_URL` override the endpoints.
   - `PORT` defaults to 8000.
   - `HOST` defaults to 127.0.0.1. Use 0.0.0.0 to test from your phone on the same Wi-Fi.
-- If the server can't reach DeepSeek, it prints the reason in the terminal. For example, 401 is a wrong key
-  and 402 is an account that needs topping up. Visitors only see a polite "unavailable" message.
+- If a request fails, the terminal prints why. For example, 401/403 is a wrong key, 402 is an account that
+  needs topping up, 404 is an unknown model, and 429 is a rate or free-tier limit. Visitors only see a
+  polite "unavailable" message.
 
 ## Files
 
@@ -60,7 +57,7 @@ Without a key, or when served by `python3 -m http.server`, the chat bubble simpl
 | `content.js` | **Edit this.** All copy, products, tours, hours, and the flight beat timeline |
 | `app.js` | Scroll→frame engine, chapter fades, header state, mobile menu, demo form |
 | `chat.js` | "Ask the brewer" chat widget (only shown when `server.mjs` has an API key) |
-| `server.mjs` | Node server: static files + `/api/chat` proxy to DeepSeek or Claude |
+| `server.mjs` | Node server: static files + `/api/chat` proxy to Gemini, Groq, DeepSeek or Claude |
 | `styles.css` | Design tokens and layout |
 | `style-tile.html` | Style tile: logo, palette, type, components, imagery direction |
 | `assets/logo-mark.svg` | Editable vector logo mark |

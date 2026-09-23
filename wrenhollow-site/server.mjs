@@ -1,5 +1,7 @@
-// Wrenhollow — static site server + AI chat assistant (DeepSeek or Claude).
-//   DEEPSEEK_API_KEY=sk-...        node server.mjs   → http://localhost:8000   (no npm install needed)
+// Wrenhollow — static site server + AI chat assistant.
+//   GEMINI_API_KEY=...             node server.mjs   → http://localhost:8000   (free tier, no npm install)
+//   GROQ_API_KEY=gsk_...           node server.mjs   (free tier)
+//   DEEPSEEK_API_KEY=sk-...        node server.mjs
 //   ANTHROPIC_API_KEY=sk-ant-...   npm start          (Claude; run `npm install` first)
 // The API key stays on this server; the browser only talks to /api/chat.
 import http from "node:http";
@@ -11,9 +13,18 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 8000;
 const HOST = process.env.HOST || "127.0.0.1";
-// Which AI answers the chat: CHAT_PROVIDER=deepseek|claude, or picked from whichever key is set.
+// OpenAI-compatible chat services: key variable, default endpoint and model (override with
+// <NAME>_BASE_URL and CHAT_MODEL if a service renames things).
+const COMPAT = {
+  gemini:   { name: "Gemini",   keyEnv: "GEMINI_API_KEY",   base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash", keys: "aistudio.google.com/apikey" },
+  groq:     { name: "Groq",     keyEnv: "GROQ_API_KEY",     base: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile", keys: "console.groq.com/keys" },
+  deepseek: { name: "DeepSeek", keyEnv: "DEEPSEEK_API_KEY", base: "https://api.deepseek.com", model: "deepseek-chat", keys: "platform.deepseek.com" },
+};
+
+// Which AI answers the chat: CHAT_PROVIDER=gemini|groq|deepseek|claude, or the first one whose key is set.
 const PROVIDER = (process.env.CHAT_PROVIDER ||
-  (process.env.DEEPSEEK_API_KEY ? "deepseek" : process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN ? "claude" : "")).toLowerCase();
+  Object.keys(COMPAT).find((id) => process.env[COMPAT[id].keyEnv]) ||
+  (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN ? "claude" : "")).toLowerCase();
 
 // Abuse limits for a public chat box.
 const MAX_TURNS = 20;            // messages kept from the conversation
@@ -73,14 +84,15 @@ class HttpError extends Error {
   constructor(status, body) { super(`HTTP ${status}: ${body.slice(0, 300)}`); this.status = status; }
 }
 
-// DeepSeek: OpenAI-compatible Chat Completions over plain fetch (Node 18+), streamed as server-sent events.
-function deepseekProvider() {
-  const key = process.env.DEEPSEEK_API_KEY;
-  if (!key) { console.error("[chat] CHAT_PROVIDER=deepseek but DEEPSEEK_API_KEY is not set"); return null; }
-  const base = (process.env.DEEPSEEK_BASE_URL || "https://api.deepseek.com").replace(/\/+$/, "");
-  const model = process.env.CHAT_MODEL || "deepseek-chat";
+// Gemini / Groq / DeepSeek: OpenAI-compatible Chat Completions over plain fetch (Node 18+), streamed as server-sent events.
+function compatProvider(id) {
+  const svc = COMPAT[id];
+  const key = process.env[svc.keyEnv];
+  if (!key) { console.error(`[chat] CHAT_PROVIDER=${id} but ${svc.keyEnv} is not set`); return null; }
+  const base = (process.env[`${id.toUpperCase()}_BASE_URL`] || svc.base).replace(/\/+$/, "");
+  const model = process.env.CHAT_MODEL || svc.model;
   return {
-    label: `DeepSeek (${model})`,
+    label: `${svc.name} (${model})`,
     async reply(messages, signal, onText) {
       const r = await fetch(`${base}/chat/completions`, {
         method: "POST",
@@ -114,10 +126,11 @@ function deepseekProvider() {
     },
     explain(err) {
       switch (err.status) {
-        case 401: return { log: "DeepSeek rejected the API key (401)", msg: SORRY };
-        case 402: return { log: "DeepSeek account has insufficient balance (402): top up at platform.deepseek.com", msg: SORRY };
-        case 429: return { log: "DeepSeek rate limit (429)", msg: "We're busy right now. Please try again in a minute." };
-        default: return { log: err.status ? `DeepSeek error: ${err.message}` : err, msg: SORRY };
+        case 401: case 403: return { log: `${svc.name} rejected the API key (${err.status}): check ${svc.keyEnv} (keys: ${svc.keys})`, msg: SORRY };
+        case 402: return { log: `${svc.name} account has insufficient balance (402): top up at ${svc.keys}`, msg: SORRY };
+        case 404: return { log: `${svc.name} doesn't know model "${model}" or the URL (404): set CHAT_MODEL to a current model. ${err.message}`, msg: SORRY };
+        case 429: return { log: `${svc.name} rate or free-tier limit reached (429). ${err.message}`, msg: "We're busy right now. Please try again in a minute." };
+        default: return { log: err.status ? `${svc.name} error: ${err.message}` : err, msg: SORRY };
       }
     },
   };
@@ -161,10 +174,10 @@ async function claudeProvider() {
   };
 }
 
-const chat = PROVIDER === "deepseek" ? deepseekProvider()
+const chat = COMPAT[PROVIDER] ? compatProvider(PROVIDER)
   : PROVIDER === "claude" ? await claudeProvider()
   : null;
-if (PROVIDER && !["deepseek", "claude"].includes(PROVIDER)) console.error(`[chat] unknown CHAT_PROVIDER "${PROVIDER}" (use deepseek or claude)`);
+if (PROVIDER && !COMPAT[PROVIDER] && PROVIDER !== "claude") console.error(`[chat] unknown CHAT_PROVIDER "${PROVIDER}" (use gemini, groq, deepseek or claude)`);
 
 /* ---------------- Helpers ---------------- */
 const hits = new Map(); // ip -> timestamps
@@ -283,5 +296,5 @@ http.createServer((req, res) => {
   serveStatic(req, res);
 }).listen(PORT, HOST, () => {
   console.log(`Wrenhollow running at http://${HOST === "0.0.0.0" ? "localhost" : HOST}:${PORT}`);
-  console.log(chat ? `Chat assistant on: ${chat.label}.` : "Chat assistant off: set DEEPSEEK_API_KEY (or ANTHROPIC_API_KEY) to turn it on.");
+  console.log(chat ? `Chat assistant on: ${chat.label}.` : "Chat assistant off: set GEMINI_API_KEY, GROQ_API_KEY, DEEPSEEK_API_KEY or ANTHROPIC_API_KEY to turn it on.");
 });

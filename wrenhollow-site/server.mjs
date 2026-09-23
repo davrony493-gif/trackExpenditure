@@ -307,10 +307,17 @@ function isSecretKey(key) {
 }
 let accountsConfig = null;
 if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-  if (isSecretKey(process.env.SUPABASE_ANON_KEY)) {
+  const key = process.env.SUPABASE_ANON_KEY.trim();
+  const looksValid = /^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(key) || /^eyJ[\w-]+\.[\w-]+\.[\w-]+$/.test(key);
+  if (isSecretKey(key)) {
     console.error("[accounts] SUPABASE_ANON_KEY is a secret (service_role) key. Use the anon / publishable key instead; accounts are off.");
+  } else if (!looksValid) {
+    console.error("[accounts] SUPABASE_ANON_KEY doesn't look like a real key (placeholder text, spaces or a cut-off copy?).\n" +
+      "           Copy it with the copy button on Supabase → Project Settings → API Keys → Publishable key. Accounts are off.");
+  } else if (!/^https:\/\/[a-z0-9-]+\.supabase\.(co|in)\/?$/.test(process.env.SUPABASE_URL.trim()) && !/^http:\/\/(localhost|127\.0\.0\.1)/.test(process.env.SUPABASE_URL)) {
+    console.error("[accounts] SUPABASE_URL should look like https://your-project-id.supabase.co. Accounts are off.");
   } else {
-    accountsConfig = { url: process.env.SUPABASE_URL.replace(/\/+$/, ""), anonKey: process.env.SUPABASE_ANON_KEY };
+    accountsConfig = { url: process.env.SUPABASE_URL.trim().replace(/\/+$/, ""), anonKey: key };
   }
 }
 const SUPABASE_BUNDLE = path.join(ROOT, "node_modules/@supabase/supabase-js/dist/umd/supabase.js");

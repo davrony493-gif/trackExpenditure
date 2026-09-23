@@ -199,6 +199,10 @@
     if (code === "weak_password") return "Please choose a stronger password (at least 8 characters).";
     if (code === "over_email_send_rate_limit" || error?.status === 429) return "Too many attempts. Please wait a minute and try again.";
     if (error?.name === "AuthRetryableFetchError" || error?.message === "Failed to fetch") return "Can't reach the members service right now. Check your connection and try again.";
+    if (/invalid api key|no api key/i.test(error?.message || "")) {
+      console.error("[accounts] Supabase rejected SUPABASE_ANON_KEY. Check the publishable key in .env.");
+      return "Member accounts aren't available right now. Please try again later.";
+    }
     return error?.message || "Something went wrong. Please try again.";
   }
 

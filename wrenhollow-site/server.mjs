@@ -30,7 +30,7 @@ const HOST = process.env.HOST || "127.0.0.1";
 // OpenAI-compatible chat services: key variable, default endpoint and model (override with
 // <NAME>_BASE_URL and CHAT_MODEL if a service renames things).
 const COMPAT = {
-  gemini:   { name: "Gemini",   keyEnv: "GEMINI_API_KEY",   base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.5-flash", keys: "aistudio.google.com/apikey" },
+  gemini:   { name: "Gemini",   keyEnv: "GEMINI_API_KEY",   base: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-3.6-flash", keys: "aistudio.google.com/apikey" },
   groq:     { name: "Groq",     keyEnv: "GROQ_API_KEY",     base: "https://api.groq.com/openai/v1", model: "llama-3.3-70b-versatile", keys: "console.groq.com/keys" },
   deepseek: { name: "DeepSeek", keyEnv: "DEEPSEEK_API_KEY", base: "https://api.deepseek.com", model: "deepseek-chat", keys: "platform.deepseek.com" },
 };

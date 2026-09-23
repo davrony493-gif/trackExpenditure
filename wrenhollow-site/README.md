@@ -48,7 +48,7 @@ Without a key, or when served by `python3 -m http.server`, the chat bubble simpl
 - Settings:
   - `CHAT_PROVIDER` is `gemini`, `groq`, `deepseek` or `claude`. If it isn't set, the first service
     whose key is set is used, in that order.
-  - `CHAT_MODEL` sets the model. Defaults: `gemini-2.5-flash`, `llama-3.3-70b-versatile`, `deepseek-chat`,
+  - `CHAT_MODEL` sets the model. Defaults: `gemini-3.6-flash`, `llama-3.3-70b-versatile`, `deepseek-chat`,
     `claude-opus-5`. Change it if a service renames its models.
   - `GEMINI_BASE_URL`, `GROQ_BASE_URL` and `DEEPSEEK_BASE_URL` override the endpoints.
   - `PORT` defaults to 8000.

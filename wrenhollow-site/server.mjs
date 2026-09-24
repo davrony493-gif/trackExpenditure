@@ -356,9 +356,16 @@ function compressedBody(file, st, enc) {
   return buf;
 }
 
+// The path of a request. Parsed against a fixed origin so "//host/…" style paths can't be read as a host
+// (new URL("//", base) throws, which used to crash the whole server).
+function requestPath(req) {
+  const raw = String(req.url || "/");
+  return new URL("http://x" + (raw.startsWith("/") ? raw : "/" + raw)).pathname;
+}
+
 function serveStatic(req, res) {
   let rel;
-  try { rel = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { res.writeHead(400).end(); return; }
+  try { rel = decodeURIComponent(requestPath(req)); } catch { res.writeHead(400).end(); return; }
   if (rel.endsWith("/")) rel += "index.html";
   const file = path.normalize(path.join(ROOT, rel));
   const top = path.relative(ROOT, file).split(path.sep)[0];
@@ -398,7 +405,8 @@ http.createServer((req, res) => {
     res.writeHead(301, { location: `https://${req.headers.host}${req.url}` });
     return res.end();
   }
-  const { pathname } = new URL(req.url, "http://x");
+  let pathname;
+  try { pathname = requestPath(req); } catch { res.writeHead(400).end("Bad request"); return; }
   if (pathname === "/api/chat/status" && req.method === "GET") return json(res, 200, { enabled: !!chat });
   if (pathname === "/api/config" && req.method === "GET") return json(res, 200, { accounts: accountsConfig && fs.existsSync(SUPABASE_BUNDLE) ? accountsConfig : null });
   if (pathname === "/vendor/supabase.js" && req.method === "GET") {

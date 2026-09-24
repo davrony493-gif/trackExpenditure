@@ -84,7 +84,6 @@
   const canvas = $(".stage-canvas", stage);
   const ctx = canvas.getContext("2d", { alpha: false });
   const progressBar = $(".progress-bar", stage);
-  const header = $(".site-header");
 
   let timeline = null;   // { beats:[{a,b,...}], total, chapters:[{id,a,b}] }
   let vhPx = innerHeight;
@@ -108,26 +107,18 @@
     timeline = { beats, total: acc, chapters };
   }
 
-  // Page geometry is measured once per layout, not on every scroll step (reading layout while scrolling is costly on phones).
-  const geo = { top: 0, height: 0, headerH: 0 };
-  function measure() {
-    geo.top = flight.getBoundingClientRect().top + window.scrollY;
-    geo.height = flight.offsetHeight;
-    geo.headerH = header.getBoundingClientRect().height;
-  }
-
   function layout() {
     vhPx = innerHeight;
     if (!flight.classList.contains("is-static")) {
       flight.style.height = `${(timeline.total + 1) * vhPx}px`;
     }
     sizeCanvas();
-    measure();
   }
 
   /** scroll position within the flight, in viewport heights */
   function scrollPos() {
-    return clamp((window.scrollY - geo.top) / vhPx, 0, timeline.total);
+    const top = flight.getBoundingClientRect().top;
+    return clamp(-top / vhPx, 0, timeline.total);
   }
 
   function beatAt(pos) {
@@ -168,33 +159,24 @@
   }
 
   /* ---------------- Frames ----------------
-   * Frames come in "packs" (24 frames per file) because phones on mobile data pay ~150–300 ms per request:
-   * a few large requests are far faster than hundreds of small ones. Two tiers:
-   *   hd  – the sharp frames, fetched pack by pack outward from the current position in the scroll direction;
-   *   pv  – a tiny low-res preview of the whole flight (one pack), so the picture keeps moving with the finger
-   *         while sharp packs are still arriving.
-   * Downloaded frames are kept compressed; only frames near the current position are decoded into bitmaps. */
+   * Every frame is downloaded once (compressed blobs are small), nearest to the current position first,
+   * then the rest in the background so fast scrolling never outruns the network. Only frames near the
+   * current position are decoded into bitmaps, which keeps memory low on phones. */
   const frames = {
-    manifest: null, count: 0, fps: 20, version: "1", seq: 0,
-    hd: null, pv: null, blobs: new Map(),
-    maxBitmaps: 72, maxFetch: 3, maxDecode: 4, background: true, decodes: 0,
-    current: 0, dir: 1, drawn: -1, drawnKey: "", drawnFocus: -1, dirty: true,
+    manifest: null, count: 0, fps: 20, base: "", version: "1", seq: 0,
+    blobs: new Map(),           // idx -> Blob (compressed, kept)
+    bitmaps: new Map(),         // idx -> ImageBitmap | HTMLImageElement (decoded, bounded)
+    fetching: new Map(),        // idx -> AbortController
+    decoding: new Set(),
+    failures: new Map(),
+    maxBitmaps: 72, maxFetch: 6, maxDecode: 3, background: true,
+    current: 0, dir: 1, drawn: -1, drawnFocus: -1, dirty: true,
   };
-  // The decode window must stay smaller than the bitmap budget, or frames get evicted and decoded again (thrashing).
-  const NEAR_AHEAD = 16, NEAR_BEHIND = 6;
-  // On a fast flick the scroll can pass ~150+ frames a second, more than a phone can decode. Then we decode
-  // every 2nd/3rd… frame in the direction of travel so the picture keeps up, and fill in the exact frame
-  // as soon as the scroll settles.
-  const motion = { vel: 0, lastIdx: 0, lastT: 0, settle: 0 };
-  function stride() { return motion.vel > 70 ? Math.min(6, Math.ceil(motion.vel / 40)) : 1; }
+  const NEAR_AHEAD = 36, NEAR_BEHIND = 12;
 
-  function makeTier(t, rootUrl, every = 1) {
-    return {
-      every, count: t.count, type: t.type, perPack: t.perPack, packs: t.packs,
-      base: new URL(t.dir, rootUrl).href,
-      blobs: new Map(), bitmaps: new Map(), decoding: new Set(),
-      fetching: new Map(), failed: new Map(), done: new Set(), drawn: -1,
-    };
+  function frameUrl(i) {
+    const num = String(i + (frames.manifest.start || 0)).padStart(frames.manifest.pad || 4, "0");
+    return `${frames.base}${frames.manifest.pattern.replace("%04d", num)}?v=${encodeURIComponent(frames.version)}`;
   }
 
   async function decode(blob) {
@@ -211,138 +193,90 @@
     else if (img.src && img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
   }
 
-  /** Frames to have decoded right now. At rest: the current frame, the next ones in the scroll direction and a few behind.
-   *  During a fast flick: frames on a fixed grid (every 2nd/3rd… frame) starting where the scroll will be by the time
-   *  a decode finishes, so the picture keeps up with the finger instead of trailing behind it. */
+  /** Frames to have decoded right now: the current one, then ahead in the scroll direction, then just behind. */
   function nearWindow() {
-    const c = frames.current, d = frames.dir, n = frames.count, st = stride();
-    const out = [c];
-    if (st === 1) {
-      for (let k = 1; k <= NEAR_AHEAD; k++) { out.push(c + d * k); if (k <= NEAR_BEHIND) out.push(c - d * k); }
-    } else {
-      const lead = Math.min(40, Math.round(motion.vel * 0.08));            // ~80 ms of decode latency
-      let g = Math.ceil((c + d * lead) / st) * st;                          // align to the stride grid
-      if (d < 0) g = Math.floor((c + d * lead) / st) * st;
-      for (let k = 0; k < NEAR_AHEAD; k++) out.push(g + d * k * st);
+    const c = frames.current, d = frames.dir, n = frames.count, out = [c];
+    for (let k = 1; k <= NEAR_AHEAD; k++) {
+      out.push(c + d * k);
+      if (k <= NEAR_BEHIND) out.push(c - d * k);
     }
-    return out.filter((i, j, a) => i >= 0 && i < n && a.indexOf(i) === j);
+    return out.filter((i) => i >= 0 && i < n);
   }
 
-  function fetchPack(tier, p) {
-    const seq = frames.seq, ctl = new AbortController(), pack = tier.packs[p];
-    tier.fetching.set(p, ctl);
-    fetch(`${tier.base}${pack.file}?v=${encodeURIComponent(frames.version)}`, { signal: ctl.signal })
-      .then((r) => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
-      .then((buf) => {
-        if (seq !== frames.seq) return;
-        pack.frames.forEach(([off, len], k) => {
-          tier.blobs.set(p * tier.perPack + k, new Blob([new Uint8Array(buf, off, len)], { type: tier.type }));
-        });
-        tier.done.add(p); tier.failed.delete(p);
-      })
-      .catch((err) => { if (err.name !== "AbortError" && seq === frames.seq) tier.failed.set(p, (tier.failed.get(p) || 0) + 1); })
-      .finally(() => { if (seq === frames.seq) { tier.fetching.delete(p); pump(); } });
+  function evictBitmaps() {
+    if (frames.bitmaps.size <= frames.maxBitmaps) return;
+    const c = frames.current;
+    const far = [...frames.bitmaps.keys()].sort((a, b) => Math.abs(b - c) - Math.abs(a - c));
+    while (frames.bitmaps.size > frames.maxBitmaps && far.length) {
+      const k = far.shift();
+      if (k === frames.drawn) continue;
+      release(frames.bitmaps.get(k));
+      frames.bitmaps.delete(k);
+    }
   }
 
-  function decodeInto(tier, i, keepNear) {
+  function fetchFrame(i) {
+    const seq = frames.seq, ctl = new AbortController();
+    frames.fetching.set(i, ctl);
+    fetch(frameUrl(i), { signal: ctl.signal })
+      .then((r) => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+      .then((blob) => { if (seq === frames.seq) { frames.blobs.set(i, blob); frames.failures.delete(i); } })
+      .catch((err) => { if (err.name !== "AbortError" && seq === frames.seq) frames.failures.set(i, (frames.failures.get(i) || 0) + 1); })
+      .finally(() => { if (seq === frames.seq) { frames.fetching.delete(i); pump(); } });
+  }
+
+  function decodeFrame(i) {
     const seq = frames.seq;
-    tier.decoding.add(i);
-    if (tier === frames.hd) frames.decodes++;
-    decode(tier.blobs.get(i))
+    frames.decoding.add(i);
+    decode(frames.blobs.get(i))
       .then((img) => {
         if (seq !== frames.seq) { release(img); return; }
-        tier.bitmaps.set(i, img);
-        keepNear(tier);
-        frames.dirty = true; requestDraw();
+        frames.bitmaps.set(i, img);
+        evictBitmaps();
+        if (Math.abs(i - frames.current) <= 12) { frames.dirty = true; requestDraw(); }
       })
-      .catch(() => { if (seq === frames.seq) tier.blobs.delete(i); })
-      .finally(() => { if (seq === frames.seq) { tier.decoding.delete(i); pump(); } });
-  }
-
-  function evictHd(tier) {
-    if (tier.bitmaps.size <= frames.maxBitmaps) return;
-    const keep = new Set(nearWindow()); keep.add(frames.drawn);
-    const c = frames.current;
-    // Evict frames outside the working window first (farthest first); never the window itself.
-    const victims = [...tier.bitmaps.keys()].filter((k) => !keep.has(k)).sort((a, b) => Math.abs(b - c) - Math.abs(a - c));
-    while (tier.bitmaps.size > frames.maxBitmaps && victims.length) {
-      const k = victims.shift(); release(tier.bitmaps.get(k)); tier.bitmaps.delete(k);
-    }
-  }
-  function evictPv(tier) {
-    if (tier.bitmaps.size <= 48) return;
-    const c = frames.current / tier.every;
-    const far = [...tier.bitmaps.keys()].filter((k) => k !== tier.drawn).sort((a, b) => Math.abs(b - c) - Math.abs(a - c));
-    while (tier.bitmaps.size > 48 && far.length) { const k = far.shift(); release(tier.bitmaps.get(k)); tier.bitmaps.delete(k); }
-  }
-
-  /** Nearest downloaded-but-not-decoded sharp frame to i (within ±8), used when the exact frame hasn't arrived yet. */
-  function nearestBlob(i) {
-    const hd = frames.hd;
-    if (hd.blobs.has(i)) return i;
-    for (let k = 1; k <= 8; k++) {
-      if (hd.blobs.has(i + frames.dir * k)) return i + frames.dir * k;
-      if (hd.blobs.has(i - frames.dir * k)) return i - frames.dir * k;
-    }
-    return -1;
-  }
-
-  function nearestDecoded(i) {
-    const bm = frames.hd.bitmaps;
-    if (bm.has(i)) return i;
-    for (let k = 1; k < 30; k++) {
-      if (bm.has(i - k * frames.dir)) return i - k * frames.dir;
-      if (bm.has(i + k * frames.dir)) return i + k * frames.dir;
-    }
-    return -1;
+      .catch(() => { if (seq === frames.seq) frames.blobs.delete(i); }) // corrupt download: fetch it again
+      .finally(() => { if (seq === frames.seq) { frames.decoding.delete(i); pump(); } });
   }
 
   function pump() {
     if (!frames.manifest) return;
-    const hd = frames.hd, pv = frames.pv, near = nearWindow();
-    // 1. decode what's close; if a frame hasn't downloaded yet, decode the nearest one that has
+    const near = nearWindow();
+    // 1. decode what's close and already downloaded
     for (const i of near) {
-      if (hd.decoding.size >= frames.maxDecode) break;
-      const j = hd.bitmaps.has(i) ? -1 : nearestBlob(i);
-      if (j >= 0 && !hd.bitmaps.has(j) && !hd.decoding.has(j)) decodeInto(hd, j, evictHd);
+      if (frames.decoding.size >= frames.maxDecode) break;
+      if (frames.blobs.has(i) && !frames.bitmaps.has(i) && !frames.decoding.has(i)) decodeFrame(i);
     }
-    // 1b. where no sharp frame is ready nearby, decode the preview frame instead (tiny, cheap)
-    if (pv) {
-      for (const i of near.slice(0, 10)) {
-        if (pv.decoding.size >= 2) break;
-        const k = nearestDecoded(i);
-        if (k >= 0 && Math.abs(k - i) <= 2) continue;
-        const j = Math.round(i / pv.every);
-        if (pv.blobs.has(j) && !pv.bitmaps.has(j) && !pv.decoding.has(j)) decodeInto(pv, j, evictPv);
-      }
+    // 2. download: near frames first, then (in the background) everything else, outward from here
+    const queue = near.slice();
+    if (frames.background && frames.blobs.size >= Math.min(24, frames.count)) {
+      const c = frames.current;
+      for (let k = 1; k < frames.count; k++) { queue.push(c + frames.dir * k, c - frames.dir * k); }
     }
-    // 2. downloads: the sharp pack we're in and the whole preview first (side by side), then sharp packs
-    //    outward from here, heading in the scroll direction first
-    const cp = Math.floor(frames.current / hd.perPack), nPacks = hd.packs.length;
-    const queue = [[hd, cp]];
-    if (pv) for (let p = 0; p < pv.packs.length; p++) queue.push([pv, p]);
-    const nearPacks = new Set(near.map((i) => Math.floor(i / hd.perPack)));
-    for (const p of nearPacks) queue.push([hd, p]);
-    const reach = frames.background ? nPacks : 2;
-    for (let k = 1; k < reach; k++) { queue.push([hd, cp + frames.dir * k]); queue.push([hd, cp - frames.dir * k]); }
-    let inFlight = hd.fetching.size + (pv ? pv.fetching.size : 0);
-    for (const [tier, p] of queue) {
-      if (inFlight >= frames.maxFetch) break;
-      if (p < 0 || p >= tier.packs.length || tier.done.has(p) || tier.fetching.has(p)) continue;
-      if ((tier.failed.get(p) || 0) >= 3) continue;
-      fetchPack(tier, p); inFlight++;
+    for (const i of queue) {
+      if (frames.fetching.size >= frames.maxFetch) break;
+      if (i < 0 || i >= frames.count || frames.blobs.has(i) || frames.fetching.has(i)) continue;
+      if ((frames.failures.get(i) || 0) >= 3) continue;
+      fetchFrame(i);
     }
+  }
+
+  function nearestDecoded(i) {
+    if (frames.bitmaps.has(i)) return i;
+    for (let k = 1; k < 30; k++) {
+      if (frames.bitmaps.has(i - k * frames.dir)) return i - k * frames.dir;
+      if (frames.bitmaps.has(i + k * frames.dir)) return i + k * frames.dir;
+    }
+    return -1;
   }
 
   function resetFrames() {
     frames.seq++;
-    for (const tier of [frames.hd, frames.pv]) {
-      if (!tier) continue;
-      for (const ctl of tier.fetching.values()) ctl.abort();
-      for (const img of tier.bitmaps.values()) release(img);
-    }
-    frames.hd = frames.pv = null; frames.blobs = new Map();
-    frames.manifest = null; frames.drawn = -1; frames.drawnKey = ""; frames.dirty = true;
+    for (const ctl of frames.fetching.values()) ctl.abort();
+    frames.fetching.clear(); frames.decoding.clear(); frames.failures.clear();
+    for (const img of frames.bitmaps.values()) release(img);
+    frames.bitmaps.clear(); frames.blobs.clear();
+    frames.manifest = null; frames.drawn = -1; frames.dirty = true;
   }
 
   function sizeCanvas() {
@@ -353,24 +287,10 @@
   }
 
   function draw(idx, focus) {
-    // Prefer a sharp frame at (or right next to) the target; otherwise the preview frame for this moment;
-    // otherwise the nearest sharp frame we have.
-    let img = null, key = "", shown = -1;
-    const k = nearestDecoded(idx), tol = Math.max(2, stride() * 2);
-    if (k >= 0 && Math.abs(k - idx) <= tol) { img = frames.hd.bitmaps.get(k); key = "hd" + k; shown = k; }
-    else if (frames.pv) {
-      const pv = frames.pv, j0 = Math.round(idx / pv.every);
-      for (let d = 0; d <= 3 && !img; d++) {
-        for (const j of d ? [j0 - d, j0 + d] : [j0]) {
-          if (pv.bitmaps.has(j)) { img = pv.bitmaps.get(j); key = "pv" + j; shown = j * pv.every; pv.drawn = j; break; }
-        }
-      }
-      // keep the sharp poster on screen at the very start rather than swapping it for a blurry preview frame
-      if (img && !stage.classList.contains("is-live") && idx === 0) img = null;
-    }
-    if (!img && k >= 0) { img = frames.hd.bitmaps.get(k); key = "hd" + k; shown = k; }
-    if (!img) return;
-    if (!frames.dirty && key === frames.drawnKey && Math.abs(focus - frames.drawnFocus) < 0.001) return; // nothing changed
+    const k = nearestDecoded(idx);
+    if (k < 0) return;
+    if (!frames.dirty && k === frames.drawn && Math.abs(focus - frames.drawnFocus) < 0.001) return; // nothing changed
+    const img = frames.bitmaps.get(k);
     const cw = canvas.width, ch = canvas.height;
     const fw = img.width, fh = img.height;
     const s = Math.max(cw / fw, ch / fh);
@@ -378,21 +298,16 @@
     const x = (cw - dw) * clamp(focus, 0, 1);
     const y = (ch - dh) / 2;
     ctx.imageSmoothingEnabled = true;
-    // previews are soft anyway; "low" keeps stretching them cheap
-    ctx.imageSmoothingQuality = key.startsWith("pv") ? "low" : s > 1.6 ? "medium" : "low";
+    ctx.imageSmoothingQuality = s > 1.6 ? "medium" : "low";
     ctx.drawImage(img, x, y, dw, dh);
-    if (key.startsWith("hd")) frames.drawn = shown;
-    frames.drawnKey = key; frames.drawnFocus = focus; frames.dirty = false;
-    if (stage.dataset.shown !== String(shown)) stage.dataset.shown = shown;
+    frames.drawn = k; frames.drawnFocus = focus; frames.dirty = false;
+    stage.dataset.shown = k;
     if (!stage.classList.contains("is-live")) stage.classList.add("is-live");
   }
 
   /* ---------------- Render loop ---------------- */
   let raf = 0;
   function requestDraw() { if (!raf) raf = requestAnimationFrame(render); }
-
-  const chapterState = {}; // id -> { o, active } last written, so the DOM is only touched on change
-  let lastSide = "", lastMoving = null, lastProgress = -1;
 
   function render() {
     raf = 0;
@@ -402,48 +317,31 @@
     if (frames.manifest) {
       const idx = clamp(Math.round(timeAt(pos) * frames.fps), 0, frames.count - 1);
       if (idx !== frames.current) {
-        const now = performance.now();
-        const dt = Math.max(8, now - motion.lastT) / 1000;
-        motion.vel = motion.vel * 0.6 + (Math.abs(idx - frames.current) / dt) * 0.4; // frames per second
-        motion.lastT = now;
         frames.dir = idx >= frames.current ? 1 : -1;
         frames.current = idx;
         pump();
-        clearTimeout(motion.settle);
-        motion.settle = setTimeout(() => { motion.vel = 0; pump(); requestDraw(); }, 120);
       }
-      if (stage.dataset.frame !== String(idx)) stage.dataset.frame = idx;
       // Tall screens (phones, upright tablets) crop the sides, so follow each beat's focus point.
       const tall = canvas.width < canvas.height * 1.1;
       draw(idx, tall && !frames.manifest.preCropped ? focusAt(pos) : 0.5);
+      stage.dataset.frame = idx;
     }
 
     let activeSide = "none";
     for (const ch of timeline.chapters) {
-      const o = Math.round(chapterOpacity(ch, pos) * 100) / 100;
+      const o = chapterOpacity(ch, pos);
       const art = chapterEls[ch.id];
-      const prev = chapterState[ch.id] || (chapterState[ch.id] = { o: -1, active: null });
-      const active = o > 0.5;
-      if (o !== prev.o) {
-        art.style.opacity = o;
-        art.style.setProperty("--shift", `${((1 - o) * 18).toFixed(1)}px`);
-        art.classList.toggle("is-visible", o > 0.01);
-        prev.o = o;
-      }
-      if (active !== prev.active) {
-        art.classList.toggle("is-active", active);
-        if (active) { art.removeAttribute("inert"); art.removeAttribute("aria-hidden"); }
-        else { art.setAttribute("inert", ""); art.setAttribute("aria-hidden", "true"); }
-        prev.active = active;
-      }
-      if (active) activeSide = C.chapters[ch.id].side;
+      art.style.opacity = o.toFixed(3);
+      art.style.setProperty("--shift", `${((1 - o) * 18).toFixed(1)}px`);
+      const visible = o > 0.01, active = o > 0.5;
+      art.classList.toggle("is-visible", visible);
+      art.classList.toggle("is-active", active);
+      if (active) { art.removeAttribute("inert"); art.removeAttribute("aria-hidden"); activeSide = C.chapters[ch.id].side; }
+      else { art.setAttribute("inert", ""); art.setAttribute("aria-hidden", "true"); }
     }
-    if (activeSide !== lastSide) { stage.dataset.side = activeSide; lastSide = activeSide; }
-    const moving = pos > 0.15;
-    if (moving !== lastMoving) { stage.classList.toggle("is-moving", moving); lastMoving = moving; }
-    const prog = Math.round((pos / timeline.total) * 1000) / 1000;
-    if (prog !== lastProgress) { progressBar.style.transform = `scaleX(${prog})`; lastProgress = prog; }
-    updateHeader();
+    stage.dataset.side = activeSide;
+    stage.classList.toggle("is-moving", pos > 0.15);
+    progressBar.style.transform = `scaleX(${(pos / timeline.total).toFixed(4)})`;
   }
 
   /* ---------------- Static fallback ---------------- */
@@ -466,23 +364,16 @@
       const r = await fetch(url, { cache: "no-cache" });
       if (!r.ok) throw new Error("manifest " + r.status);
       const m = await r.json();
-      if (m.format !== "packs") throw new Error("unsupported frames manifest");
-      // Upright phones take the pre-cropped portrait sequence (its crop already follows each beat's focus).
-      const usePortrait = phoneMQ.matches && portraitMQ.matches && m.portrait;
+      // phones take the pre-cropped portrait sequence unless a beat needs an off-centre focus
+      const needsFocus = C.flight.beats.some((b) => b.focus != null && b.focus !== 0.5);
+      const usePortrait = phoneMQ.matches && portraitMQ.matches && m.portrait && (m.portrait.focusBaked || !needsFocus);
       const seq = usePortrait ? m.portrait : m;
-      const root = new URL(url, location.href);
-      frames.manifest = { preCropped: !!usePortrait };
-      frames.hd = makeTier(seq, root);
-      frames.pv = seq.preview ? makeTier(seq.preview, root, seq.preview.every || 2) : null;
-      frames.blobs = frames.hd.blobs; // diagnostics
+      frames.manifest = { ...seq, preCropped: usePortrait, pattern: seq.pattern || m.pattern, pad: seq.pad || m.pad, start: seq.start ?? m.start };
       frames.count = seq.count;
       frames.fps = m.fps;
       frames.version = String(m.version || "1");
-      const compact = phoneMQ.matches || portraitMQ.matches;
-      frames.maxBitmaps = compact ? 40 : 72; // ~2 MB each on phones
-      // Decoding runs on background threads but still competes with scrolling for the phone's CPU cores.
-      frames.maxDecode = compact ? 2 : 4;
-      window.__wrenFrames = frames; // for diagnostics
+      frames.base = new URL(seq.dir || m.dir || "./", new URL(url, location.href)).href;
+      frames.maxBitmaps = phoneMQ.matches || portraitMQ.matches ? 36 : 72;
       // Respect Data Saver: only fetch frames near the current position, not the whole sequence.
       frames.background = !(navigator.connection && navigator.connection.saveData);
       frames.current = clamp(Math.round(timeAt(scrollPos()) * frames.fps), 0, frames.count - 1);
@@ -496,11 +387,12 @@
   }
 
   /* ---------------- Header & menu ---------------- */
+  const header = $(".site-header");
   function updateHeader() {
-    const flightBottom = geo.top + geo.height - window.scrollY;
-    const solid = flight.classList.contains("is-static") ? window.scrollY > 40 : flightBottom <= geo.headerH + 1;
-    const state = solid ? "solid" : "glass";
-    if (header.dataset.state !== state) header.dataset.state = state;
+    const hb = header.getBoundingClientRect().bottom;
+    const fb = flight.getBoundingClientRect().bottom;
+    const solid = flight.classList.contains("is-static") ? window.scrollY > 40 : fb <= hb + 1;
+    header.dataset.state = solid ? "solid" : "glass";
   }
 
   function initMenu() {
@@ -587,11 +479,7 @@
   initForm();
   initFlight().then(() => { updateHeader(); requestDraw(); });
 
-  addEventListener("scroll", () => {
-    if (flight.classList.contains("is-static")) updateHeader(); else requestDraw();
-  }, { passive: true });
-  // Fonts and late images can shift the page slightly; re-measure once everything has loaded.
-  addEventListener("load", () => { if (timeline) { measure(); requestDraw(); } });
+  addEventListener("scroll", () => { requestDraw(); updateHeader(); }, { passive: true });
   let lastW = innerWidth, lastH = innerHeight;
   function onResize() {
     // ignore small height-only changes from mobile browser chrome showing/hiding

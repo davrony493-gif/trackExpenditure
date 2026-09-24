@@ -526,11 +526,8 @@ body.dialog-open { overflow: hidden; }
   .chapter[data-side="center"] .actions { justify-content: flex-start; }
 }
 
-/* Touch screens have no hover: don't leave buttons and cards stuck in their hover state after a tap.
-   Also skip the frosted-glass blur on controls over the fly-through: it is recomputed on every video
-   frame and is expensive on phones. */
+/* Touch screens have no hover: don't leave buttons and cards stuck in their hover state after a tap. */
 @media (hover: none) {
-  .skip-tour { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(21,24,15,.7); }
   .btn:hover, .chat-toggle:hover { transform: none; }
   .card:hover { transform: none; box-shadow: none; }
 }

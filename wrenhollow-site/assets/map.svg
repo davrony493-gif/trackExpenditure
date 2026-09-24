@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="map-t map-d">
+  <title id="map-t">Map of Wrenhollow and Alder Vale (illustrative)</title>
+  <desc id="map-d">Wrenhollow Barn sits on Mill Lane beside the river Alder. The car park is next to the barn, the Mill Lane bus stop is a 5-minute walk away, and Alder Vale station is about 1.2 miles away along the riverside footpath.</desc>
+  <rect width="640" height="400" fill="#E9DECB"/>
+  <!-- fields and orchard -->
+  <g opacity=".55">
+    <path d="M0 0h250l-40 150H0z" fill="#E2CF9E"/>
+    <path d="M400 0h240v120l-190 30z" fill="#E2CF9E"/>
+    <path d="M300 250l180-30 160 20v160H330z" fill="#D5DCC3"/>
+  </g>
+  <g fill="#9DB08A" opacity=".8">
+    <circle cx="470" cy="270" r="8"/><circle cx="500" cy="262" r="8"/><circle cx="530" cy="270" r="8"/><circle cx="560" cy="262" r="8"/>
+    <circle cx="485" cy="295" r="8"/><circle cx="515" cy="290" r="8"/><circle cx="545" cy="296" r="8"/><circle cx="575" cy="290" r="8"/>
+  </g>
+  <!-- river Alder -->
+  <path d="M-10 250c90-30 150 10 230 0s120-70 200-90 150 10 230-10" fill="none" stroke="#7F9C99" stroke-width="30" stroke-linecap="round"/>
+  <path d="M-10 250c90-30 150 10 230 0s120-70 200-90 150 10 230-10" fill="none" stroke="#9FB7B4" stroke-width="18" stroke-linecap="round"/>
+  <!-- riverside footpath -->
+  <path d="M60 106C74 196 150 222 222 222S296 172 316 170M344 228c40 8 64 40 80 70" fill="none" stroke="#5E7A78" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>
+  <!-- roads -->
+  <path d="M0 110h640" stroke="#FBF6EC" stroke-width="16"/>
+  <path d="M330 110v290" stroke="#FBF6EC" stroke-width="12"/>
+  <path d="M330 330h310" stroke="#FBF6EC" stroke-width="12"/>
+  <!-- bridge -->
+  <path d="M318 178h24v44h-24z" fill="#C9B79A" stroke="#8C7A5E" stroke-width="2"/>
+  <!-- station -->
+  <g transform="translate(60 92)">
+    <rect x="-14" y="-12" width="28" height="24" rx="4" fill="#15180F"/>
+    <path d="M-7 -4h14M-7 3h14" stroke="#F3EBDD" stroke-width="2.4" stroke-linecap="round"/>
+  </g>
+  <!-- bus stop -->
+  <g transform="translate(330 150)">
+    <circle r="11" fill="#5E7A78" stroke="#FBF6EC" stroke-width="3"/>
+    <text y="4" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#FBF6EC">B</text>
+  </g>
+  <!-- car park -->
+  <g transform="translate(372 348)">
+    <rect x="-14" y="-12" width="28" height="24" rx="4" fill="#2F4B6E"/>
+    <text y="5" text-anchor="middle" font-family="Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#FBF6EC">P</text>
+  </g>
+  <!-- the barn -->
+  <g transform="translate(430 356)">
+    <path d="M-28 10v-22l28-16 28 16v22z" fill="#8E4B32" stroke="#15180F" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M-6 10v-10a6 6 0 0 1 12 0v10" fill="#3F5A3A" stroke="#15180F" stroke-width="2"/>
+  </g>
+  <g transform="translate(430 312)">
+    <path d="M0 18c-10-12-16-20-16-28a16 16 0 0 1 32 0c0 8-6 16-16 28z" fill="#B8733A" stroke="#15180F" stroke-width="2.5"/>
+    <circle cy="-10" r="5.5" fill="#FBF6EC"/>
+  </g>
+  <!-- labels -->
+  <g font-family="Helvetica, Arial, sans-serif" fill="#15180F">
+    <text x="80" y="72" font-size="14" font-weight="700">Alder Vale station</text>
+    <text x="80" y="88" font-size="12" fill="#3F4136">1.2 miles · 25 min walk</text>
+    <text x="348" y="146" font-size="13" font-weight="700">Mill Lane bus stop</text>
+    <text x="348" y="162" font-size="12" fill="#3F4136">Route 42 · 5 min walk</text>
+    <text x="470" y="354" font-size="15" font-weight="700">Wrenhollow Barn</text>
+    <text x="470" y="372" font-size="12" fill="#3F4136">Car park beside the barn</text>
+    <text x="0" y="0" font-size="12" font-style="italic" fill="#3F4136" transform="translate(322 300) rotate(-90)">Mill Lane</text>
+    <text x="170" y="134" font-size="12" font-style="italic" fill="#3F4136">Alder Vale Road</text>
+    <text x="96" y="176" font-size="12" fill="#3F4136">Riverside footpath</text>
+    <text x="500" y="176" font-size="15" font-style="italic" fill="#3F5A58" font-family="Georgia, serif">River Alder</text>
+    <text x="440" y="250" font-size="12" fill="#3F4136">Orchard</text>
+    <text x="16" y="392" font-size="11" fill="#3F4136">Illustrative map of a fictional place. Not to scale.</text>
+  </g>
+</svg>

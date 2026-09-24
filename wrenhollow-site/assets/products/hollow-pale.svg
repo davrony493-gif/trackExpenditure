@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" role="img" aria-label="Illustration of a pint of pale ale">
+  <rect width="240" height="180" fill="#EFE4CF"/>
+  <ellipse cx="120" cy="160" rx="64" ry="7" fill="#15180F" opacity=".12"/>
+  <path d="M92 30h56l-4 18c3 4 3 8 0 12l-6 96H102l-6-96c-3-4-3-8 0-12z" fill="#E0A93F" stroke="#15180F" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M92 30h56l-2 10H94z" fill="#FBF1D9" stroke="#15180F" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M104 64l5 80" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".28"/>
+  <circle cx="130" cy="100" r="11" fill="none" stroke="#B8733A" stroke-width="2.5" opacity=".9"/>
+</svg>

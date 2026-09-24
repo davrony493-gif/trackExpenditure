@@ -1,0 +1,20 @@
+# Response headers for static hosts (Netlify and Cloudflare Pages both read this file).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: SAMEORIGIN
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+# Frame images are requested with ?v=<version>, so they can be cached for good.
+# The manifest (frames/manifest.json) is deliberately not listed: it must always revalidate.
+/frames/landscape/*
+  Cache-Control: public, max-age=31536000, immutable
+/frames/portrait/*
+  Cache-Control: public, max-age=31536000, immutable
+/frames/landscape-avif/*
+  Cache-Control: public, max-age=31536000, immutable
+/frames/portrait-avif/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*
+  Cache-Control: public, max-age=604800

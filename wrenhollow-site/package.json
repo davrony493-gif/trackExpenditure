@@ -1,0 +1,16 @@
+{
+  "name": "wrenhollow-site",
+  "private": true,
+  "type": "module",
+  "description": "Wrenhollow demo website with a Claude chat assistant",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "@supabase/supabase-js": "^2.117.1"
+  }
+}

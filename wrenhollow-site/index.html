@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="preload" as="image" href="assets/poster.webp">
   <link rel="stylesheet" href="styles.css">
+  <script>document.documentElement.classList.add("js"); if (!matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("fly");</script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to content</a>
@@ -65,7 +66,43 @@
         <img class="stage-poster" src="assets/poster.webp" alt="" aria-hidden="true">
         <canvas class="stage-canvas" aria-hidden="true"></canvas>
         <div class="stage-scrim" aria-hidden="true"></div>
-        <div class="chapters" id="chapters"></div>
+        <div class="chapters" id="chapters">
+          <article class="chapter" data-id="arrive" data-side="left" style="--still: url('assets/chapter-arrive.webp'), url('assets/poster.webp')">
+            <p class="eyebrow">Alder Vale · On the river</p>
+            <h1><span class="full">Brewed slow.<br>Distilled by the river.</span><span class="short">Brewed slow. Distilled by the river.</span></h1>
+            <p class="body">Wrenhollow is a working brewhouse and still house in an old red-brick barn. Come in and follow the grain from the kettle to the glass.</p>
+            <div class="actions"><a class="btn btn-primary" href="#visit">Book a tasting</a><a class="btn btn-ghost" href="#range">See what’s pouring</a></div>
+          </article>
+          <article class="chapter" data-id="taproom" data-side="left" style="--still: url('assets/chapter-taproom.webp'), url('assets/poster.webp')">
+            <p class="eyebrow">01 — The Tasting Room</p>
+            <h2><span class="full">Pulled at the bar, a few steps from the kettle</span><span class="short">The Tasting Room</span></h2>
+            <p class="body">Cask ales, orchard cider and small-batch spirits, poured by the people who made them.</p>
+            <div class="actions"><a class="btn btn-ghost" href="#range">What’s on tap</a></div>
+          </article>
+          <article class="chapter" data-id="stills" data-side="right" style="--still: url('assets/chapter-stills.webp'), url('assets/poster.webp')">
+            <p class="eyebrow">02 — The Still House</p>
+            <h2><span class="full">Copper &amp; steam</span><span class="short">Copper &amp; steam</span></h2>
+            <p class="body">The copper pot still runs slowly and every cut is made by hand. The distiller decides where the heart of each run begins and ends.</p>
+            <div class="actions"><a class="btn btn-ghost" href="#tours">Join a still-house tour</a></div>
+          </article>
+          <article class="chapter" data-id="casks" data-side="left" style="--still: url('assets/chapter-casks.webp'), url('assets/poster.webp')">
+            <p class="eyebrow">03 — The Barrel Warehouse</p>
+            <h2><span class="full">Patience, in oak</span><span class="short">Patience, in oak</span></h2>
+            <p class="body">Rows of casks sleep in the cool river air. Nothing leaves the warehouse until it tastes ready.</p>
+          </article>
+          <article class="chapter" data-id="bottling" data-side="right" style="--still: url('assets/chapter-bottling.webp'), url('assets/poster.webp')">
+            <p class="eyebrow">04 — The Bottling Line</p>
+            <h2><span class="full">Filled here, batch by batch</span><span class="short">Filled here, batch by batch</span></h2>
+            <p class="body">Every bottle is filled, sealed and labelled on site, and each small batch is numbered.</p>
+            <div class="actions"><a class="btn btn-ghost" href="#range">Shop the range</a></div>
+          </article>
+          <article class="chapter" data-id="reveal" data-side="center" style="--still: url('assets/chapter-reveal.webp'), url('assets/poster.webp')">
+            <p class="eyebrow">Wrenhollow, from above</p>
+            <h2><span class="full">Orchards, barley and the river Alder</span><span class="short">Come and find us</span></h2>
+            <p class="body">Our apples, grain and water all come from the land you can see from here. Stay for a flight, walk the orchard and take a bottle home.</p>
+            <div class="actions"><a class="btn btn-primary" href="#visit">Book a tasting</a><a class="btn btn-ghost" href="#visit">Plan your visit</a></div>
+          </article>
+        </div>
         <div class="stage-ui">
           <a class="skip-tour" href="#main-content">Skip the tour <span aria-hidden="true">↓</span></a>
           <div class="progress" aria-hidden="true"><span class="progress-bar"></span></div>
@@ -82,7 +119,38 @@
             <h2 id="range-title">The range</h2>
             <p class="lede">Ales and cider from the brewhouse, spirits from the copper stills. It all starts with barley grown around the barn.</p>
           </header>
-          <div class="range-grid" id="range-grid"></div>
+          <div class="range-grid" id="range-grid">
+            <article class="card">
+              <span class="card-glyph" aria-hidden="true">◐</span>
+              <p class="kind">Cask pale ale · 4.2%</p><h3>Hollow Pale</h3><p>Local barley, bright hops, a soft bitter finish.</p>
+              <p class="price">£4.80 pint</p>
+            </article>
+            <article class="card">
+              <span class="card-glyph" aria-hidden="true">●</span>
+              <p class="kind">Oatmeal stout · 5.4%</p><h3>Wren’s Nest Stout</h3><p>Roasted malt, cocoa and a creamy, dry finish.</p>
+              <p class="price">£5.20 pint</p>
+            </article>
+            <article class="card">
+              <span class="card-glyph" aria-hidden="true">◒</span>
+              <p class="kind">Dry cider · 5.8%</p><h3>Orchard Gate</h3><p>Pressed from the trees behind the warehouse.</p>
+              <p class="price">£5.00 pint</p>
+            </article>
+            <article class="card">
+              <span class="card-glyph" aria-hidden="true">✦</span>
+              <p class="kind">Copper-pot gin · 42%</p><h3>Alder River Gin</h3><p>Juniper, apple blossom, meadowsweet and river mint.</p>
+              <p class="price">£38 / 70cl</p>
+            </article>
+            <article class="card">
+              <span class="card-glyph" aria-hidden="true">◆</span>
+              <p class="kind">Cask-aged malt spirit · 46%</p><h3>Copperhead Malt</h3><p>Double-distilled from our own ale wash, rested in ex-stout casks.</p>
+              <p class="price">£52 / 70cl</p>
+            </article>
+            <article class="card">
+              <span class="card-glyph" aria-hidden="true">✺</span>
+              <p class="kind">Barrel-aged barley wine · 10%</p><h3>Ember Reserve</h3><p>Aged in spirit casks. Toffee, dried fig, a little smoke.</p>
+              <p class="price">£14 / 375ml</p>
+            </article>
+          </div>
           <p class="fine">Sample products and prices for this demo.</p>
         </div>
       </section>
@@ -94,7 +162,27 @@
             <h2 id="tours-title">Walk the route yourself</h2>
             <p class="lede">The film follows the same path our tours take, from the tasting-room door to the loading bay.</p>
           </header>
-          <div class="tour-grid" id="tour-grid"></div>
+          <div class="tour-grid" id="tour-grid">
+            <article class="tour">
+              <h3>Tasting Flight</h3>
+              <div class="meta"><span>45 min</span><strong>£18</strong></div>
+              <p>Six pours at the bar with a host: three beers, the cider and two spirits.</p>
+              <a class="btn btn-ghost" href="#visit" data-tour="Tasting Flight">Book this</a>
+            </article>
+            <article class="tour is-featured">
+              <span class="badge">Most booked</span>
+              <h3>Still House Tour</h3>
+              <div class="meta"><span>90 min</span><strong>£32</strong></div>
+              <p>Walk the whole route in the film: brewhouse, stills, warehouse and bottling line. Ends with a flight.</p>
+              <a class="btn btn-primary" href="#visit" data-tour="Still House Tour">Book this</a>
+            </article>
+            <article class="tour">
+              <h3>Barrel Room Masterclass</h3>
+              <div class="meta"><span>2 hrs</span><strong>£65</strong></div>
+              <p>Taste straight from the cask with the distiller and fill your own 20cl bottle.</p>
+              <a class="btn btn-ghost" href="#visit" data-tour="Barrel Room Masterclass">Book this</a>
+            </article>
+          </div>
         </div>
       </section>
 
@@ -104,7 +192,13 @@
             <p class="eyebrow">How it’s made</p>
             <h2 id="process-title">From field to bottle, in one barn</h2>
           </header>
-          <ol class="process" id="process-list"></ol>
+          <ol class="process" id="process-list">
+            <li><span class="n">01</span><h3>Grain</h3><p>Barley from the fields around the barn, malted nearby.</p></li>
+            <li><span class="n">02</span><h3>Mash &amp; ferment</h3><p>Brewed in the brewhouse. Some of it becomes ale, some becomes wash.</p></li>
+            <li><span class="n">03</span><h3>Copper</h3><p>The wash is run twice through the copper pot still and cut by hand.</p></li>
+            <li><span class="n">04</span><h3>Oak</h3><p>Spirit and strong ales rest in casks in the riverside warehouse.</p></li>
+            <li><span class="n">05</span><h3>Bottle</h3><p>Filled, sealed and numbered on the bottling line.</p></li>
+          </ol>
         </div>
       </section>
 
@@ -113,9 +207,17 @@
           <div class="visit-info">
             <p class="eyebrow">Visit</p>
             <h2 id="visit-title">Come and find us</h2>
-            <address id="visit-address"></address>
-            <table class="hours" id="visit-hours"><caption>Opening hours</caption></table>
-            <p class="fine" id="visit-note"></p>
+            <address id="visit-address">Wrenhollow Barn<br>Mill Lane, Alder Vale<br>(fictional address)</address>
+            <table class="hours" id="visit-hours">
+              <caption>Opening hours</caption>
+              <tbody>
+                <tr><th scope="row">Wed – Thu</th><td>12:00 – 21:00</td></tr>
+                <tr><th scope="row">Fri – Sat</th><td>12:00 – 23:00</td></tr>
+                <tr><th scope="row">Sun</th><td>12:00 – 18:00</td></tr>
+                <tr><th scope="row">Mon – Tue</th><td>Closed</td></tr>
+              </tbody>
+            </table>
+            <p class="fine" id="visit-note">Sample opening hours for this demo.</p>
           </div>
           <form class="booking" id="booking" novalidate>
             <h3>Book a tasting</h3>
@@ -142,7 +244,11 @@
             </div>
             <div class="field">
               <label for="b-tour">Experience</label>
-              <select id="b-tour" name="tour"></select>
+              <select id="b-tour" name="tour">
+                <option value="Tasting Flight">Tasting Flight (£18)</option>
+                <option value="Still House Tour">Still House Tour (£32)</option>
+                <option value="Barrel Room Masterclass">Barrel Room Masterclass (£65)</option>
+              </select>
             </div>
             <button class="btn btn-primary btn-block" type="submit">Request booking</button>
             <p class="form-status" id="booking-status" role="status" aria-live="polite"></p>

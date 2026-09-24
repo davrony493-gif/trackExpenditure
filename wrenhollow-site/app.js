@@ -1,14 +1,9 @@
-/* Wrenhollow — fly-through engine, page rendering and UI behaviour. */
+/* Wrenhollow — fly-through engine and UI behaviour.
+ * All copy lives in index.html so the page reads fine without JavaScript; this file only animates it. */
 (() => {
   "use strict";
   const C = window.WRENHOLLOW;
   const $ = (s, r = document) => r.querySelector(s);
-  const el = (tag, attrs = {}, html = "") => {
-    const n = document.createElement(tag);
-    for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
-    if (html) n.innerHTML = html;
-    return n;
-  };
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const smooth = (t) => t * t * (3 - 2 * t);
 
@@ -17,66 +12,20 @@
   const portraitMQ = matchMedia("(orientation: portrait)");
   const menuMQ = matchMedia("(max-width: 1023px), (max-height: 500px) and (orientation: landscape)"); // header collapses into the menu
 
-  /* ---------------- Page content ---------------- */
-  function renderContent() {
-    const glyphs = ["◐", "●", "◒", "✦", "◆", "✺"];
-    const range = $("#range-grid");
-    C.range.forEach((p, i) => {
-      range.append(el("article", { class: "card" },
-        `<span class="card-glyph" aria-hidden="true">${glyphs[i % glyphs.length]}</span>
-         <p class="kind">${p.kind}</p><h3>${p.name}</h3><p>${p.note}</p>
-         <p class="price">${p.price}</p>`));
-    });
-
-    const tours = $("#tour-grid");
+  /* "Book this" on a tour card preselects that tour in the booking form. */
+  function initTourLinks() {
     const tourSelect = $("#b-tour");
-    C.tours.forEach((t) => {
-      tours.append(el("article", { class: "tour" + (t.featured ? " is-featured" : "") },
-        `${t.featured ? '<span class="badge">Most booked</span>' : ""}
-         <h3>${t.name}</h3>
-         <div class="meta"><span>${t.time}</span><strong>${t.price}</strong></div>
-         <p>${t.body}</p>
-         <a class="btn ${t.featured ? "btn-primary" : "btn-ghost"}" href="#visit" data-tour="${t.name}">Book this</a>`));
-      tourSelect.append(el("option", {}, `${t.name} (${t.price})`));
-    });
-    tours.addEventListener("click", (e) => {
+    $("#tour-grid").addEventListener("click", (e) => {
       const a = e.target.closest("[data-tour]");
-      if (!a) return;
-      const i = C.tours.findIndex((t) => t.name === a.dataset.tour);
-      if (i >= 0) tourSelect.selectedIndex = i;
+      if (a) tourSelect.value = a.dataset.tour;
     });
-
-    const proc = $("#process-list");
-    C.process.forEach((s) => proc.append(el("li", {},
-      `<span class="n">${s.n}</span><h3>${s.title}</h3><p>${s.body}</p>`)));
-
-    $("#visit-address").innerHTML = C.visit.address.join("<br>");
-    const hours = $("#visit-hours");
-    const tb = el("tbody");
-    C.visit.hours.forEach(([d, h]) => tb.append(el("tr", {}, `<th scope="row">${d}</th><td>${h}</td>`)));
-    hours.append(tb);
-    $("#visit-note").textContent = C.visit.note;
   }
 
   /* ---------------- Chapters ---------------- */
   const chapterEls = {};
-  function renderChapters() {
-    const host = $("#chapters");
-    let first = true;
-    for (const [id, ch] of Object.entries(C.chapters)) {
-      const heading = first ? "h1" : "h2";
-      const art = el("article", { class: "chapter", "data-id": id, "data-side": ch.side },
-        `<p class="eyebrow">${ch.eyebrow}</p>
-         <${heading}><span class="full">${ch.title}</span><span class="short">${ch.short}</span></${heading}>
-         <p class="body">${ch.body}</p>
-         ${ch.actions.length ? `<div class="actions">${ch.actions.map((a) =>
-            `<a class="btn ${a.primary ? "btn-primary" : "btn-ghost"}" href="${a.href}">${a.label}</a>`).join("")}</div>` : ""}`);
-      art.style.setProperty("--still", `url("${ch.still}"), url("${C.flight.poster}")`);
-      host.append(art);
-      chapterEls[id] = art;
-      first = false;
-    }
-  }
+  for (const art of document.querySelectorAll("#chapters .chapter")) chapterEls[art.dataset.id] = art;
+  const root = document.documentElement;
+  const isStatic = () => !root.classList.contains("fly");
 
   /* ---------------- Timeline ---------------- */
   const flight = $("#flight");
@@ -109,7 +58,7 @@
 
   function layout() {
     vhPx = innerHeight;
-    if (!flight.classList.contains("is-static")) {
+    if (!isStatic()) {
       flight.style.height = `${(timeline.total + 1) * vhPx}px`;
     }
     sizeCanvas();
@@ -311,7 +260,7 @@
 
   function render() {
     raf = 0;
-    if (!timeline || flight.classList.contains("is-static")) return;
+    if (!timeline || isStatic()) return;
     const pos = scrollPos();
 
     if (frames.manifest) {
@@ -336,7 +285,7 @@
       const visible = o > 0.01, active = o > 0.5;
       art.classList.toggle("is-visible", visible);
       art.classList.toggle("is-active", active);
-      if (active) { art.removeAttribute("inert"); art.removeAttribute("aria-hidden"); activeSide = C.chapters[ch.id].side; }
+      if (active) { art.removeAttribute("inert"); art.removeAttribute("aria-hidden"); activeSide = art.dataset.side; }
       else { art.setAttribute("inert", ""); art.setAttribute("aria-hidden", "true"); }
     }
     stage.dataset.side = activeSide;
@@ -346,7 +295,7 @@
 
   /* ---------------- Static fallback ---------------- */
   function goStatic() {
-    flight.classList.add("is-static");
+    root.classList.remove("fly");
     flight.style.height = "";
     for (const art of Object.values(chapterEls)) {
       art.removeAttribute("inert"); art.removeAttribute("aria-hidden"); art.style.opacity = "";
@@ -391,7 +340,7 @@
   function updateHeader() {
     const hb = header.getBoundingClientRect().bottom;
     const fb = flight.getBoundingClientRect().bottom;
-    const solid = flight.classList.contains("is-static") ? window.scrollY > 40 : fb <= hb + 1;
+    const solid = isStatic() ? window.scrollY > 40 : fb <= hb + 1;
     header.dataset.state = solid ? "solid" : "glass";
   }
 
@@ -453,7 +402,7 @@
         submit.disabled = true;
         status.textContent = "Sending your request…";
         const res = await acct.submitBooking({
-          experience: C.tours[$("#b-tour").selectedIndex]?.name || $("#b-tour").value,
+          experience: $("#b-tour").value,
           date: date.value,
           guests: Number($("#b-guests").value),
         });
@@ -473,8 +422,7 @@
   }
 
   /* ---------------- Boot ---------------- */
-  renderContent();
-  renderChapters();
+  initTourLinks();
   initMenu();
   initForm();
   initFlight().then(() => { updateHeader(); requestDraw(); });
@@ -495,7 +443,7 @@
   addEventListener("orientationchange", onResize);
   // switching between phone/desktop or portrait/landscape: drop the old sequence before loading the right one
   function reloadSequence() {
-    if (flight.classList.contains("is-static")) return;
+    if (isStatic()) return;
     resetFrames();
     initFlight();
   }

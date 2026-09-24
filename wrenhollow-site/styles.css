@@ -105,6 +105,7 @@ p { margin: 0; }
 .primary-nav a:hover { background: rgba(243, 235, 221, .1); }
 .header-cta { min-height: 42px; }
 .menu-toggle { display: none; }
+html:not(.js) .menu-toggle { display: none !important; } /* the menu needs JS; the footer links cover navigation */
 
 /* Mobile menu (styled fully in the mobile block) */
 .mobile-menu[hidden] { display: none; }
@@ -167,21 +168,22 @@ p { margin: 0; }
 @keyframes cue { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); } 100% { transform: scaleY(1); opacity: 0; } }
 .stage.is-moving .scroll-cue { opacity: 0; }
 
-/* Static fallback (reduced motion / no frames) */
-.flight.is-static { height: auto !important; }
-.flight.is-static .stage { position: relative; height: auto; overflow: visible; }
-.flight.is-static .stage-poster, .flight.is-static .stage-canvas, .flight.is-static .stage-scrim, .flight.is-static .stage-ui .progress, .flight.is-static .scroll-cue { display: none; }
-.flight.is-static .chapters { position: static; pointer-events: auto; }
-.flight.is-static .chapter {
+/* Static fallback (no JS, reduced motion or no frames): chapters stack as normal sections. The inline
+   script in <head> adds .fly before first paint when the fly-through can run. */
+html:not(.fly) .flight { height: auto !important; }
+html:not(.fly) .flight .stage { position: relative; height: auto; overflow: visible; }
+html:not(.fly) .flight .stage-poster, html:not(.fly) .flight .stage-canvas, html:not(.fly) .flight .stage-scrim, html:not(.fly) .flight .stage-ui .progress, html:not(.fly) .flight .scroll-cue { display: none; }
+html:not(.fly) .flight .chapters { position: static; pointer-events: auto; }
+html:not(.fly) .flight .chapter {
   position: relative; inset: auto; transform: none; opacity: 1; visibility: visible; width: auto;
   min-height: 88vh; display: flex; flex-direction: column; justify-content: flex-end;
   padding: calc(var(--header-h) + 40px) var(--gutter) 64px; text-align: left;
   background: var(--still) center / cover no-repeat;
 }
-.flight.is-static .chapter::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(21,24,15,.85) 0%, rgba(21,24,15,.35) 55%, rgba(21,24,15,.15) 100%); }
-.flight.is-static .chapter > * { position: relative; max-width: 640px; }
-.flight.is-static .chapter[data-side="center"] .actions { justify-content: flex-start; }
-.flight.is-static .stage-ui { position: absolute; top: calc(var(--header-h) + 16px); bottom: auto; }
+html:not(.fly) .flight .chapter::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(21,24,15,.85) 0%, rgba(21,24,15,.35) 55%, rgba(21,24,15,.15) 100%); }
+html:not(.fly) .flight .chapter > * { position: relative; max-width: 640px; }
+html:not(.fly) .flight .chapter[data-side="center"] .actions { justify-content: flex-start; }
+html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h) + 16px); bottom: auto; }
 
 /* ---------- SECTIONS ---------- */
 .section { padding: clamp(80px, 11vw, 140px) 0; }
@@ -343,10 +345,10 @@ p { margin: 0; }
   .scroll-cue { left: auto; right: 16px; transform: none; bottom: max(26px, env(safe-area-inset-bottom)); flex-direction: row; font-size: .68rem; gap: 8px; }
   .scroll-cue span { height: 22px; }
 
-  .flight.is-static .chapter { min-height: 78vh; padding: calc(var(--header-h) + 32px) 16px 48px; }
-  .flight.is-static .chapter .full { display: inline; }
-  .flight.is-static .chapter .short { display: none; }
-  .flight.is-static .chapter p.body, .flight.is-static .chapter .actions { display: block; }
+  html:not(.fly) .flight .chapter { min-height: 78vh; padding: calc(var(--header-h) + 32px) 16px 48px; }
+  html:not(.fly) .flight .chapter .full { display: inline; }
+  html:not(.fly) .flight .chapter .short { display: none; }
+  html:not(.fly) .flight .chapter p.body, html:not(.fly) .flight .chapter .actions { display: block; }
 
   /* Sections: single column */
   .section { padding: 72px 0; }

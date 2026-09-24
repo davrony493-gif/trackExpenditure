@@ -7,7 +7,6 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
@@ -50,38 +49,35 @@ const RATE_LIMIT = 20;           // requests per IP…
 const RATE_WINDOW_MS = 10 * 60 * 1000; // …per 10 minutes
 const GLOBAL_LIMIT = Number(process.env.CHAT_HOURLY_LIMIT) || 300; // all visitors together, per hour (protects your AI quota)
 
-/* ---------------- System prompt from content.js ---------------- */
-function loadContent() {
-  const sandbox = { window: {} };
-  vm.runInNewContext(fs.readFileSync(path.join(ROOT, "content.js"), "utf8"), sandbox);
-  return sandbox.window.WRENHOLLOW;
+/* ---------------- System prompt from index.html ----------------
+ * The page is the single source of truth: the assistant knows what a visitor can read in <main>
+ * (chapters, range, tours, how it's made, visit), minus the booking form. Edit index.html and restart. */
+function pageFacts() {
+  const html = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const main = (html.match(/<main[\s\S]*?<\/main>/) || [""])[0];
+  const ENT = { amp: "&", lt: "<", gt: ">", quot: '"', nbsp: " ", rsquo: "’", lsquo: "‘", ndash: "–", mdash: "—", middot: "·", pound: "£" };
+  return main
+    .replace(/<(script|style|form|svg|template)[\s\S]*?<\/\1>/g, "")
+    .replace(/<span class="short">[\s\S]*?<\/span>/g, "")                 // phone-only duplicate headings
+    .replace(/<[^>]*\b(aria-hidden="true"|hidden)\b[^>]*>[^<]*<\/[a-z]+>/g, "")  // decorative glyphs
+    .replace(/<h[1-4][^>]*>/g, "\n## ").replace(/<\/h[1-4]>/g, "\n")
+    .replace(/<li[^>]*>/g, "\n- ").replace(/<(br|\/p|\/tr|\/li|\/dd|\/dt|\/address|\/caption|\/article|\/div)[^>]*>/g, "\n")
+    .replace(/<\/(t[hd]|a|span|strong)>/g, " ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&(#\d+|[a-z]+);/g, (m, e) => (e[0] === "#" ? String.fromCharCode(+e.slice(1)) : ENT[e] ?? m))
+    .split("\n").map((l) => l.replace(/\s+/g, " ").trim()).filter(Boolean).join("\n");
 }
 
-function buildSystemPrompt(C) {
-  const strip = (s) => s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+function buildSystemPrompt(facts) {
   const lines = [
-    `You are the friendly host at ${C.brand.name} ${C.brand.tagline}, answering visitors in the chat box on the website.`,
+    "You are the friendly host at Wrenhollow Brewery & Distillery, answering visitors in the chat box on the website.",
     "",
-    "Wrenhollow is a FICTIONAL business used as a website demo. Everything you know about it is below; do not invent other facts (awards, history, staff names, events, dog policy, parking prices and so on). If something isn't covered, say you're not sure and suggest they ask the team when they visit.",
+    "Wrenhollow is a FICTIONAL business used as a website demo. Everything you know about it is below (the text of the web page); do not invent other facts (awards, history, staff names, events, dog policy and so on). If something isn't covered, say you're not sure and suggest they ask the team when they visit.",
     "",
-    "## About",
-    ...Object.values(C.chapters).map((ch) => `- ${strip(ch.title).replace(/[.:]$/, "")} — ${ch.body}`),
+    "# The web page",
+    facts,
     "",
-    "## What's pouring (sample prices)",
-    ...C.range.map((p) => `- ${p.name} (${p.kind}), ${p.price}. ${p.note}`),
-    "",
-    "## Tours & tastings",
-    ...C.tours.map((t) => `- ${t.name}: ${t.time}, ${t.price}. ${t.body}`),
-    "",
-    "## How it's made",
-    ...C.process.map((s) => `- ${s.title}: ${s.body}`),
-    "",
-    "## Visit",
-    `- Address: ${C.visit.address.join(", ")}`,
-    ...C.visit.hours.map(([d, h]) => `- ${d}: ${h}`),
-    `- ${C.visit.note}`,
-    "",
-    "## How to answer",
+    "# How to answer",
     "- Keep replies short: two to four sentences, warm and plain-spoken. Plain text only, no markdown, headings or bullet symbols.",
     "- You can't take or confirm bookings. Point people to the \"Book a tasting\" form in the Visit section of this page (it is a demo form and doesn't send yet).",
     "- Stick to Wrenhollow, its drinks, tours and visiting. Politely steer other topics back.",
@@ -90,8 +86,7 @@ function buildSystemPrompt(C) {
   return lines.join("\n");
 }
 
-const content = loadContent();
-const SYSTEM_PROMPT = buildSystemPrompt(content);
+const SYSTEM_PROMPT = buildSystemPrompt(pageFacts());
 
 /* ---------------- Chat providers ----------------
  * Each provider streams a reply: reply(messages, signal, onText) → { refused }.

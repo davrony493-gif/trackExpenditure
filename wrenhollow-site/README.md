@@ -41,7 +41,7 @@ requests to improve its products; check each service's terms before going live.
 
 Without a key, or when served by `python3 -m http.server`, the chat bubble simply doesn't appear.
 
-- The assistant only knows what's in `content.js` (beers, tours, hours, address), so edit that file and restart.
+- The assistant only knows what's written on the page (`index.html`: beers, tours, hours, address), so edit that file and restart.
 - Replies are short and plain text. It won't take bookings; it points people to the booking form.
 - Limits: 20 questions per visitor IP per 10 minutes and 1,500 characters per message. Replies are
   capped at 2,048 tokens (4,096 on Claude).
@@ -132,9 +132,9 @@ Good to know:
 
 | File | What it is |
 | --- | --- |
-| `index.html` | Page structure: header, fly-through stage, range, tours, process, visit/booking, footer |
-| `content.js` | **Edit this.** All copy, products, tours, hours, and the flight beat timeline |
-| `app.js` | Scroll→frame engine, chapter fades, header state, mobile menu, demo form |
+| `index.html` | **Edit this.** All page copy: chapters, range, tours, how it's made, visit, booking form. Reads fine without JavaScript |
+| `content.js` | Fly-through beat timeline (scroll distance → clip seconds) |
+| `app.js` | Animation and behaviour only: scroll→frame engine, chapter fades, header state, mobile menu, booking form |
 | `chat.js` | "Ask the brewer" chat widget (only shown when `server.mjs` has an API key) |
 | `account.js` | Member accounts: log in, sign up, password reset, My account (only shown when Supabase is set up) |
 | `supabase/schema.sql` | Database tables and Row Level Security rules to run once in Supabase |
@@ -171,6 +171,6 @@ master. No separate mobile video exists.
 
 ## Before launch
 
-- Replace the placeholder products, prices, hours and address in `content.js`.
+- Replace the placeholder products, prices, hours and address in `index.html`.
 - Connect the booking form to a real service (it's clearly marked as a demo and never claims to send).
 - Swap the Google Fonts link for self-hosted fonts if you need to avoid third-party requests.

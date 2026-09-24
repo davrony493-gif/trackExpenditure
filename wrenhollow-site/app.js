@@ -253,6 +253,17 @@
     if (!stage.classList.contains("is-live")) stage.classList.add("is-live");
   }
 
+  /* "Skip the tour" jumps straight past the flight (a smooth scroll would play all 600 frames) and moves focus there. */
+  const skipTour = $(".skip-tour", stage);
+  skipTour.addEventListener("click", (e) => {
+    const target = $("#main-content");
+    e.preventDefault();
+    const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+    scrollTo({ top: target.getBoundingClientRect().top + scrollY - pad, behavior: "instant" });
+    target.focus({ preventScroll: true });
+    history.replaceState(null, "", "#main-content");
+  });
+
   /* ---------------- Loading indicator ----------------
    * Shown until the first frame is on screen, and again if scrolling outruns the download
    * (the frame on screen is well behind where the scroll says it should be). */
@@ -299,7 +310,11 @@
       art.classList.toggle("is-visible", visible);
       art.classList.toggle("is-active", active);
       if (active) { art.removeAttribute("inert"); art.removeAttribute("aria-hidden"); activeSide = art.dataset.side; }
-      else { art.setAttribute("inert", ""); art.setAttribute("aria-hidden", "true"); }
+      else {
+        // Keyboard users: if focus sits in a chapter that's fading out, keep it on screen (on "Skip the tour").
+        if (art.contains(document.activeElement)) skipTour.focus({ preventScroll: true });
+        art.setAttribute("inert", ""); art.setAttribute("aria-hidden", "true");
+      }
     }
     stage.dataset.side = activeSide;
     stage.classList.toggle("is-moving", pos > 0.15);

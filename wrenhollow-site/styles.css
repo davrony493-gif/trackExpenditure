@@ -11,6 +11,11 @@
   --parchment-2: #E9DECB;
   --copper: #B8733A;
   --copper-hi: #D18A4C;
+  /* Accessible variants (WCAG AA 4.5:1): white text on --copper-btn, and small text on light backgrounds. */
+  --copper-btn: #A5642F;
+  --copper-btn-hover: #8F5527;
+  --copper-ink: #8A5220;
+  --river-ink: #4A6361;
   --barley: #D6A84A;
   --river: #5E7A78;
   --text-dark: #1B1D16;
@@ -52,12 +57,15 @@ h2 { font-size: clamp(2.1rem, 4.2vw, 3.5rem); }
 h3 { font-size: 1.45rem; }
 p { margin: 0; }
 
-.skip-link { position: absolute; left: 12px; top: -60px; z-index: 200; background: var(--copper); color: #fff; padding: 10px 16px; border-radius: var(--radius-sm); }
+.skip-link { position: absolute; left: 12px; top: -60px; z-index: 200; background: var(--copper-btn); color: #fff; padding: 10px 16px; border-radius: var(--radius-sm); }
 .skip-link:focus { top: 12px; }
 :focus-visible { outline: 2px solid var(--barley); outline-offset: 3px; }
+/* On light surfaces the barley ring is too faint, so focus uses dark copper there. */
+.section-light :focus-visible, .section-visit .visit-info :focus-visible, .account-dialog :focus-visible { outline-color: var(--copper-ink); }
 
 .container { width: min(var(--max), 100% - 2 * var(--gutter)); margin-inline: auto; }
 .eyebrow { font-size: .78rem; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: var(--copper); margin-bottom: 14px; }
+.section-light .eyebrow, .section-visit .eyebrow { color: var(--copper-ink); }
 .lede { font-size: 1.15rem; max-width: 56ch; margin-top: 18px; color: var(--text-muted-dark); }
 .fine { font-size: .82rem; color: var(--text-muted-dark); margin-top: 28px; }
 
@@ -70,8 +78,8 @@ p { margin: 0; }
   transition: background .2s, color .2s, border-color .2s, transform .2s var(--ease);
 }
 .btn:hover { transform: translateY(-1px); }
-.btn-primary { background: var(--copper); color: #fff; }
-.btn-primary:hover { background: var(--copper-hi); }
+.btn-primary { background: var(--copper-btn); color: #fff; }
+.btn-primary:hover { background: var(--copper-btn-hover); }
 .btn-ghost { border-color: rgba(243, 235, 221, .55); color: var(--text-light); background: rgba(21, 24, 15, .2); }
 .btn-ghost:hover { border-color: var(--text-light); background: rgba(21, 24, 15, .4); }
 .btn-block { width: 100%; }
@@ -210,10 +218,10 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
   transition: transform .3s var(--ease), box-shadow .3s var(--ease);
 }
 .card:hover { transform: translateY(-3px); box-shadow: 0 18px 40px -24px rgba(27,29,22,.35); }
-.card .kind { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--river); }
+.card .kind { font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--river-ink); }
 .card h3 { font-size: 1.6rem; }
 .card p { color: var(--text-muted-dark); }
-.card .price { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line-light); font-weight: 700; color: var(--copper); }
+.card .price { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line-light); font-weight: 700; color: var(--copper-ink); }
 .card-glyph { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--barley); margin-bottom: 6px; }
 
 .tour-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -222,7 +230,7 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
   padding: 32px; display: flex; flex-direction: column; gap: 14px; background: var(--ink-2);
 }
 .tour.is-featured { border-color: var(--copper); background: linear-gradient(160deg, #2A2317 0%, var(--ink-2) 60%); }
-.tour .badge { position: absolute; top: -12px; left: 28px; background: var(--copper); color: #fff; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; }
+.tour .badge { position: absolute; top: -12px; left: 28px; background: var(--copper-btn); color: #fff; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; }
 .tour .meta { display: flex; justify-content: space-between; align-items: baseline; font-size: .9rem; color: var(--text-muted-light); }
 .tour .meta strong { font-family: var(--font-display); font-size: 2rem; color: var(--text-light); font-weight: 600; }
 .tour p { color: var(--text-muted-light); }
@@ -231,7 +239,7 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
 .process { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; position: relative; }
 .process::before { content: ""; position: absolute; left: 22px; right: 22px; top: 22px; height: 1px; background: linear-gradient(to right, var(--copper), var(--barley)); }
 .process li { position: relative; padding-right: 24px; }
-.process .n { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--parchment); border: 1.5px solid var(--copper); color: var(--copper); font-weight: 700; font-size: .85rem; margin-bottom: 22px; }
+.process .n { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--parchment); border: 1.5px solid var(--copper); color: var(--copper-ink); font-weight: 700; font-size: .85rem; margin-bottom: 22px; }
 .process h3 { margin-bottom: 8px; }
 .process p { color: var(--text-muted-dark); font-size: .98rem; }
 
@@ -239,7 +247,7 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
 .visit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 96px); align-items: start; }
 .visit-info address { font-style: normal; font-size: 1.15rem; margin: 26px 0; }
 .hours { border-collapse: collapse; width: 100%; max-width: 420px; }
-.hours caption { text-align: left; font-weight: 700; font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; color: var(--river); padding-bottom: 8px; }
+.hours caption { text-align: left; font-weight: 700; font-size: .8rem; letter-spacing: .14em; text-transform: uppercase; color: var(--river-ink); padding-bottom: 8px; }
 .hours th, .hours td { text-align: left; padding: 10px 0; border-bottom: 1px solid var(--line-light); font-weight: 500; }
 .hours td { text-align: right; color: var(--text-muted-dark); }
 
@@ -398,11 +406,11 @@ body.menu-open .chat { display: none; }
 .chat-toggle {
   display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 20px 0 16px;
   border: 0; border-radius: 999px; cursor: pointer;
-  background: var(--copper); color: #fff; font: 600 .95rem var(--font-body);
+  background: var(--copper-btn); color: #fff; font: 600 .95rem var(--font-body);
   box-shadow: 0 12px 30px -10px rgba(0,0,0,.55);
   transition: background .2s, transform .2s var(--ease);
 }
-.chat-toggle:hover { background: var(--copper-hi); transform: translateY(-1px); }
+.chat-toggle:hover { background: var(--copper-btn-hover); transform: translateY(-1px); }
 .chat.is-open .chat-toggle { display: none; }
 .chat-panel {
   width: min(380px, calc(100vw - 32px)); height: min(560px, calc(100vh - 120px));
@@ -421,7 +429,7 @@ body.menu-open .chat { display: none; }
 .chat-log { flex: 1; overflow-y: auto; overscroll-behavior: contain; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .chat-msg { max-width: 85%; padding: 10px 14px; border-radius: 16px; font-size: .95rem; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .chat-assistant { align-self: flex-start; background: var(--ink-3); border-bottom-left-radius: 4px; }
-.chat-user { align-self: flex-end; background: var(--copper); color: #fff; border-bottom-right-radius: 4px; }
+.chat-user { align-self: flex-end; background: var(--copper-btn); color: #fff; border-bottom-right-radius: 4px; }
 .chat-error { color: var(--barley); }
 .chat-msg.is-typing::after { content: "…"; animation: chat-dots 1s steps(3) infinite; display: inline-block; width: 1.2em; overflow: hidden; vertical-align: bottom; }
 @keyframes chat-dots { from { width: 0; } to { width: 1.2em; } }
@@ -436,7 +444,7 @@ body.menu-open .chat { display: none; }
   font: 500 1rem/1.4 var(--font-body);
 }
 .chat-form textarea:focus { outline: none; border-color: var(--copper); box-shadow: 0 0 0 3px rgba(184,115,58,.3); }
-.chat-send { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border: 0; border-radius: 12px; background: var(--copper); color: #fff; cursor: pointer; }
+.chat-send { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border: 0; border-radius: 12px; background: var(--copper-btn); color: #fff; cursor: pointer; }
 .chat-form.is-busy .chat-send { opacity: .5; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) { .chat-msg.is-typing::after { animation: none; width: 1.2em; } }
 
@@ -458,7 +466,7 @@ body.menu-open .chat { display: none; }
   color: var(--text-light); font: 600 .9rem var(--font-body); cursor: pointer; white-space: nowrap;
 }
 .account-btn:hover { background: rgba(243,235,221,.1); }
-.linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--copper); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 32px; }
+.linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--copper-ink); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 32px; }
 .demo-flag .linkish { color: var(--barley); }
 body.dialog-open { overflow: hidden; }
 
@@ -470,7 +478,7 @@ body.dialog-open { overflow: hidden; }
 .account-dialog::backdrop { background: rgba(21,24,15,.7); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 .account-close { position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 12px; background: transparent; color: var(--text-dark); cursor: pointer; }
 .account-close:hover { background: rgba(27,29,22,.08); }
-.account-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: .75rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--copper); }
+.account-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: .75rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--copper-ink); }
 .account-dialog h2 { font-size: 2rem; margin-bottom: 10px; }
 .account-dialog h2:focus { outline: none; }
 .account-dialog h3 { font-size: 1.2rem; margin-bottom: 12px; }
@@ -488,8 +496,8 @@ body.dialog-open { overflow: hidden; }
 .check input { width: 20px; height: 20px; margin: 2px 0 0; accent-color: var(--copper); flex: none; }
 .check input[aria-invalid="true"] { outline: 2px solid #B2493A; outline-offset: 2px; }
 .fine-print { font-size: .82rem; color: var(--text-muted-dark); }
-.fine-print a { color: var(--copper); }
-.form-msg { min-height: 1.4em; font-size: .92rem; color: var(--river); }
+.fine-print a { color: var(--copper-ink); }
+.form-msg { min-height: 1.4em; font-size: .92rem; color: var(--river-ink); }
 .form-msg.is-error { color: #B2493A; }
 .account-alt { margin-top: 14px; font-size: .95rem; color: var(--text-muted-dark); }
 .btn-ghost-dark { border-color: rgba(27,29,22,.3); color: var(--text-dark); background: transparent; }
@@ -539,6 +547,12 @@ body.dialog-open { overflow: hidden; }
   .chapter h1, .chapter h2, .chapter[data-id="arrive"] h1 { font-size: clamp(2.6rem, 6.4vw, 4rem); }
   .chapter[data-side="center"] p.body { margin-inline: 0; }
   .chapter[data-side="center"] .actions { justify-content: flex-start; }
+}
+
+/* Reduced motion: the fly-through is replaced by static stills (see .fly in index.html), and nothing else animates. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+  .btn:hover, .card:hover, .chat-toggle:hover { transform: none; }
 }
 
 /* Touch screens have no hover: don't leave buttons and cards stuck in their hover state after a tap. */

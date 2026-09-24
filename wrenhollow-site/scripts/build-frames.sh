@@ -23,8 +23,18 @@ mkdir -p "$STAGE/land" "$STAGE/port"
 # Portrait crop focus over clip time (0 = left, 0.5 = centre, 1 = right), matching the
 # `focus` values in content.js: ease right to keep the distiller at the valve in frame.
 PORTRAIT_FOCUS="if(lt(t,9.6),0.5,if(lt(t,10.4),0.5+0.22*(t-9.6)/0.8,if(lt(t,12.3),0.72,if(lt(t,12.8),0.72-0.22*(t-12.3)/0.5,0.5))))"
+# Phones get JPEG: it decodes ~40% faster than WebP in Chrome and faster still in iOS Safari, which keeps
+# fast thumb-scrolling smooth. Laptops/tablets keep WebP (smaller, and they decode it easily).
 "$FFMPEG" -v error -i "$SRC" -an -vf "fps=$FPS,crop=trunc(ih*9/16/2)*2:ih:'(iw-ow)*($PORTRAIT_FOCUS)':0" \
-  -c:v libwebp -quality 72 -start_number 0 "$STAGE/port/frame-%04d.webp"
+  -q:v 6 -start_number 0 "$STAGE/port/frame-%04d.jpg"
+
+# Tiny preview tier (every 2nd frame, ~1 MB each): downloads in seconds even on slow mobile data, so the flight
+# always moves under the finger while the sharp frames are still arriving.
+mkdir -p "$STAGE/pland" "$STAGE/pport"
+"$FFMPEG" -v error -i "$SRC" -an -vf "fps=$FPS/2,scale=320:-2:flags=lanczos" -q:v 13 -start_number 0 "$STAGE/pland/frame-%04d.jpg"
+"$FFMPEG" -v error -i "$SRC" -an -vf "fps=$FPS/2,crop=trunc(ih*9/16/2)*2:ih:'(iw-ow)*($PORTRAIT_FOCUS)':0,scale=180:-2:flags=lanczos" -q:v 13 -start_number 0 "$STAGE/pport/frame-%04d.jpg"
+PLC=$(ls "$STAGE/pland" | wc -l | tr -d ' ')
+PPC=$(ls "$STAGE/pport" | wc -l | tr -d ' ')
 
 COUNT=$(ls "$STAGE/land" | wc -l | tr -d ' ')
 PCOUNT=$(ls "$STAGE/port" | wc -l | tr -d ' ')
@@ -35,22 +45,26 @@ rm -rf "$ROOT/frames"
 mkdir -p "$ROOT/frames"
 mv "$STAGE/land" "$ROOT/frames/landscape"
 mv "$STAGE/port" "$ROOT/frames/portrait"
+mv "$STAGE/pland" "$ROOT/frames/preview-landscape"
+mv "$STAGE/pport" "$ROOT/frames/preview-portrait"
 
-cat > "$ROOT/frames/manifest.json" <<JSON
-{
-  "version": "$VERSION",
-  "fps": $FPS,
-  "count": $COUNT,
-  "width": $LW,
-  "height": $FH,
-  "dir": "landscape/",
-  "pattern": "frame-%04d.webp",
-  "pad": 4,
-  "start": 0,
-  "poster": "../assets/poster.webp",
-  "portrait": { "count": $PCOUNT, "width": $PW, "height": $H, "dir": "portrait/", "focusBaked": true }
-}
-JSON
+# Bundle each tier into packs (few requests instead of hundreds) and write the manifest.
+PACK="$(dirname "$0")/pack-frames.mjs"
+LAND=$(node "$PACK" "$ROOT/frames/landscape" 24)
+PORT=$(node "$PACK" "$ROOT/frames/portrait" 24)
+PLAND=$(node "$PACK" "$ROOT/frames/preview-landscape" 1000)
+PPORT=$(node "$PACK" "$ROOT/frames/preview-portrait" 1000)
+OUT="$ROOT/frames/manifest.json" node -e '
+const [version, fps, lw, fh, pw, h, land, port, pland, pport] = process.argv.slice(1);
+const tier = (json, dir, extra = {}) => ({ dir, ...JSON.parse(json), ...extra });
+const manifest = {
+  version, fps: +fps, format: "packs", poster: "../assets/poster.webp",
+  width: +lw, height: +fh, ...tier(land, "landscape/"),
+  preview: tier(pland, "preview-landscape/", { every: 2 }),
+  portrait: { width: +pw, height: +h, focusBaked: true, ...tier(port, "portrait/"), preview: tier(pport, "preview-portrait/", { every: 2 }) },
+};
+require("fs").writeFileSync(process.env.OUT, JSON.stringify(manifest));
+' "$VERSION" "$FPS" "$LW" "$FH" "$PW" "$H" "$LAND" "$PORT" "$PLAND" "$PPORT"
 
 # Poster = first frame; chapter stills = representative moments (seconds match content.js beats).
 still() { "$FFMPEG" -v error -y -ss "$1" -i "$SRC" -frames:v 1 -vf "scale=$LW:-2:flags=lanczos" -c:v libwebp -quality 82 "$ROOT/assets/$2"; }
@@ -64,4 +78,4 @@ still 29.8  chapter-reveal.webp
 
 rm -rf "$STAGE"
 echo "frames: $COUNT landscape (${LW}x${FH}) + $PCOUNT portrait (${PW}x${H}) @ ${FPS}fps, version $VERSION"
-du -sh "$ROOT/frames/landscape" "$ROOT/frames/portrait"
+du -sh "$ROOT/frames/landscape" "$ROOT/frames/portrait" "$ROOT/frames/preview-landscape" "$ROOT/frames/preview-portrait"

@@ -143,7 +143,8 @@ Good to know:
 | `styles.css` | Design tokens and layout |
 | `style-tile.html` | Style tile: logo, palette, type, components, imagery direction |
 | `assets/logo-mark.svg` | Editable vector logo mark |
-| `scripts/build-frames.sh` | Builds `frames/`, the manifest, poster and chapter stills from the master video |
+| `scripts/build-frames.sh` | Builds `frames/` (sharp + preview tiers, packed), the manifest, poster and chapter stills from the master video |
+| `scripts/pack-frames.mjs` | Bundles numbered frames into packs of 24 (few requests instead of hundreds) |
 | `production/NOTES.md` | Generation log: prompts, job IDs, credits, known limitations |
 
 ## Editing the flight timing

@@ -69,11 +69,28 @@ no text, logos or signage.
   run on CPU through `spandrel`), then saved at 1708×960 and reassembled into `production/flythrough-master-upscaled.mp4`.
   Flicker check: consecutive upscaled frames differ only about 10% more than the originals, which is expected from
   sharper edges, not shimmer. The original clip is kept as `production/flythrough-master.mp4`.
-- 601 frames at 20 fps, built from the upscaled master. Landscape frames are 1280×718 WebP (≈32 MB). Portrait frames
-  are 540×960 WebP (≈16 MB) and are used only by phones held upright.
-- Loading: the browser downloads the whole sequence once in the background (nearest frames first; skipped with Data
-  Saver) and decodes only frames near the current position. On a simulated phone (4× CPU slowdown, 10 Mbps),
-  380 of 601 frames arrived within 8 s on the first screen, and fast jumps showed the right frame within about 0.2 s.
+- 601 frames at 20 fps, built from the upscaled master. Laptops/tablets: 1280×718 WebP. Upright phones: 540×960 JPEG
+  (JPEG decodes ~40% faster than WebP in Chrome, and faster still in iOS Safari).
+- **Packs:** frames are bundled 24 per file (`frames/*/pack-NNN.bin`, index in `frames/manifest.json`) by
+  `scripts/pack-frames.mjs`. Phones on mobile data pay ~150–300 ms per request, so ~600 separate frame requests were
+  capped at ~20 frames/s regardless of connection speed. 26 packs per tier remove that bottleneck.
+- **Preview tier:** a tiny low-res copy of the whole flight (every 2nd frame, one ~1 MB pack per orientation) downloads
+  alongside the first sharp pack. When a sharp frame isn't ready, the preview frame for that moment is shown, so the
+  picture moves with the finger instead of freezing, then sharpens as sharp packs arrive.
+- **Loading and decoding:** the sharp pack you're in plus the preview download first, then packs outward in the scroll
+  direction (only nearby packs with Data Saver). Only frames near the current position are decoded (a window smaller
+  than the bitmap budget, so nothing is decoded twice). On fast flicks, frames are decoded on a stride grid ahead of
+  where the scroll is heading. Phones decode 2 frames at a time so decoding doesn't starve scrolling.
+- **Measured (headless Chromium, simulated phone):**
+  - Picture lag while scrolling through the flight, before → after:
+    - 4G at normal pace: 2.3 → 0 frames behind.
+    - 4G fast flick: 220 → 0.4.
+    - 3G at normal pace: 38.7 → 0.4.
+  - Share of time showing preview frames:
+    - 4G at normal pace or Wi-Fi: 0% (all sharp).
+    - 3G, or flicking through the whole flight within 8 s of opening: ~85% (soft but moving).
+  - With a 4× slower CPU: ~22 ms per frame, no long tasks, and ~290 decodes per scroll (was ~1,500 because of
+    eviction thrashing).
 - The portrait crop eases right (focus 0.72) from 10 to 12.5 s so the distiller at the valve stays in frame.
   The same focus is stored in `content.js` (the `valve` beat) and baked into the portrait sequence by
   `scripts/build-frames.sh` (`PORTRAIT_FOCUS`).

@@ -222,6 +222,22 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
 .card h3 { font-size: 1.6rem; }
 .card p { color: var(--text-muted-dark); }
 .card .price { margin-top: auto; padding-top: 14px; border-top: 1px solid var(--line-light); font-weight: 700; color: var(--copper-ink); }
+.card { --pad: 28px; }
+.card-img { width: calc(100% + 2 * var(--pad)); max-width: none; height: auto; aspect-ratio: 4 / 3; margin: calc(-1 * var(--pad)) calc(-1 * var(--pad)) 8px; border-radius: var(--radius) var(--radius) 0 0; border-bottom: 1px solid var(--line-light); }
+.card .notes { font-size: .95rem; }
+.card .notes span { display: block; font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--river-ink); margin-bottom: 2px; }
+.card .facts { margin: auto 0 0; padding-top: 14px; border-top: 1px solid var(--line-light); display: flex; justify-content: space-between; gap: 16px; }
+.card .facts div { display: flex; flex-direction: column; }
+.card .facts dt { font-size: .72rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-muted-dark); }
+.card .facts dd { margin: 0; font-weight: 700; color: var(--text-dark); }
+.card .facts div:last-child { text-align: right; }
+.card .facts div:last-child dd { color: var(--copper-ink); }
+.card[hidden] { display: none; }
+.range-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: -24px 0 28px; }
+html:not(.js) .range-filters { display: none; }
+.filter { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1.5px solid rgba(27,29,22,.3); background: transparent; color: var(--text-dark); font: 600 .92rem var(--font-body); cursor: pointer; }
+.filter:hover { border-color: var(--text-dark); }
+.filter[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--text-light); }
 .card-glyph { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: var(--barley); margin-bottom: 6px; }
 
 .tour-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
@@ -234,9 +250,14 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
 .tour .meta { display: flex; justify-content: space-between; align-items: baseline; font-size: .9rem; color: var(--text-muted-light); }
 .tour .meta strong { font-family: var(--font-display); font-size: 2rem; color: var(--text-light); font-weight: 600; }
 .tour p { color: var(--text-muted-light); }
+.tour .included { list-style: none; margin: 0; padding: 14px 0 0; border-top: 1px solid var(--line-dark); display: grid; gap: 6px; font-size: .95rem; color: var(--text-light); }
+.tour .included li { position: relative; padding-left: 24px; }
+.tour .included li::before { content: ""; position: absolute; left: 2px; top: .45em; width: 10px; height: 6px; border: solid var(--barley); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+.tour p.age { font-size: .85rem; font-weight: 600; color: var(--barley); }
+.section-dark .fine { color: var(--text-muted-light); }
 .tour .btn { margin-top: auto; align-self: flex-start; }
 
-.process { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; position: relative; }
+.process { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; position: relative; }
 .process::before { content: ""; position: absolute; left: 22px; right: 22px; top: 22px; height: 1px; background: linear-gradient(to right, var(--copper), var(--barley)); }
 .process li { position: relative; padding-right: 24px; }
 .process .n { position: relative; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--parchment); border: 1.5px solid var(--copper); color: var(--copper-ink); font-weight: 700; font-size: .85rem; margin-bottom: 22px; }
@@ -251,6 +272,13 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
 .hours th, .hours td { text-align: left; padding: 10px 0; border-bottom: 1px solid var(--line-light); font-weight: 500; }
 .hours td { text-align: right; color: var(--text-muted-dark); }
 
+@media (min-width: 1081px) and (min-height: 860px) { .booking { position: sticky; top: calc(var(--header-h) + 24px); } }
+.visit-map { margin: 32px 0 0; }
+.visit-map img { width: 100%; height: auto; border-radius: var(--radius); border: 1px solid var(--line-light); }
+.visit-details { display: grid; gap: 24px; margin-top: 28px; }
+.visit-details h3 { font-size: 1.25rem; margin-bottom: 10px; }
+.visit-details ul { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; color: var(--text-dark); }
+.visit-details li::marker { color: var(--copper); }
 .booking { color-scheme: dark; background: var(--ink); color: var(--text-light); border-radius: calc(var(--radius) + 4px); padding: clamp(24px, 4vw, 40px); display: grid; gap: 16px; }
 .booking h3 { font-size: 1.8rem; }
 .demo-flag { font-size: .85rem; color: var(--barley); background: rgba(214,168,74,.1); border: 1px solid rgba(214,168,74,.3); padding: 10px 12px; border-radius: var(--radius-sm); }
@@ -286,7 +314,7 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
 @media (max-width: 1080px) {
   .primary-nav a { padding: 0 8px; font-size: .9rem; }
   .range-grid, .tour-grid { grid-template-columns: repeat(2, 1fr); }
-  .process { grid-template-columns: repeat(3, 1fr); row-gap: 40px; }
+  .process { grid-template-columns: repeat(2, 1fr); row-gap: 40px; }
   .process::before { display: none; }
 }
 
@@ -382,7 +410,8 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
   .container { width: auto; margin-inline: 16px; }
   .lede { font-size: 1.05rem; }
   .range-grid, .tour-grid { grid-template-columns: 1fr; gap: 14px; }
-  .card { padding: 22px; }
+  .card { padding: 22px; --pad: 22px; }
+  .range-filters { margin-top: -16px; }
   .tour { padding: 26px 22px; }
   .tour .btn { align-self: stretch; }
   .tour-grid { row-gap: 26px; }

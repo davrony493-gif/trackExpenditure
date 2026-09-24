@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" role="img" aria-label="Illustration of a small bottle of barley wine with an ear of barley">
+  <rect width="240" height="180" fill="#EBDCC6"/>
+  <ellipse cx="120" cy="160" rx="64" ry="7" fill="#15180F" opacity=".12"/>
+  <path d="M112 40h16v18h-16z" fill="#B8733A" stroke="#15180F" stroke-width="3"/>
+  <path d="M112 58h16c0 8 16 10 16 26v62a8 8 0 0 1-8 8h-32a8 8 0 0 1-8-8V84c0-16 16-18 16-26z" fill="#5A2A14" stroke="#15180F" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="100" y="100" width="40" height="32" rx="3" fill="#F3EBDD" stroke="#15180F" stroke-width="2.5"/>
+  <path d="M110 112h20M112 120h16" stroke="#B8733A" stroke-width="2.5" stroke-linecap="round"/>
+  <g stroke="#D6A84A" stroke-width="3" stroke-linecap="round" fill="none"><path d="M168 150c3-16 4-32 2-48"/><path d="M170 112l-7-5M170 122l-7-5M169 132l-7-5M170 112l6-6M170 122l6-6"/></g>
+</svg>

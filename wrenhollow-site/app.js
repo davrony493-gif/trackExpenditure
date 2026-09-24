@@ -12,6 +12,22 @@
   const portraitMQ = matchMedia("(orientation: portrait)");
   const menuMQ = matchMedia("(max-width: 1023px), (max-height: 500px) and (orientation: landscape)"); // header collapses into the menu
 
+  /* Beer / Cider / Spirits filters for the range (all products show without JavaScript). */
+  function initFilters() {
+    const buttons = [...document.querySelectorAll(".range-filters .filter")];
+    const cards = [...document.querySelectorAll("#range-grid .card")];
+    const count = $("#range-count");
+    for (const btn of buttons) {
+      btn.addEventListener("click", () => {
+        const f = btn.dataset.filter;
+        for (const b of buttons) b.setAttribute("aria-pressed", String(b === btn));
+        let shown = 0;
+        for (const c of cards) { const on = f === "all" || c.dataset.category === f; c.hidden = !on; shown += on; }
+        count.textContent = f === "all" ? `Showing all ${shown} products` : `Showing ${shown} of ${cards.length} products: ${btn.textContent}`;
+      });
+    }
+  }
+
   /* "Book this" on a tour card preselects that tour in the booking form. */
   function initTourLinks() {
     const tourSelect = $("#b-tour");
@@ -541,6 +557,7 @@
   }
 
   /* ---------------- Boot ---------------- */
+  initFilters();
   initTourLinks();
   initMenu();
   initForm();

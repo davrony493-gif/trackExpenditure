@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" role="img" aria-label="Illustration of a bottle of malt spirit">
+  <rect width="240" height="180" fill="#EBDCC6"/>
+  <ellipse cx="120" cy="160" rx="64" ry="7" fill="#15180F" opacity=".12"/>
+  <path d="M110 16h20v22h-20z" fill="#15180F"/>
+  <path d="M112 38h16c0 12 22 16 22 40v70a8 8 0 0 1-8 8h-44a8 8 0 0 1-8-8V78c0-24 22-28 22-40z" fill="#B8692A" stroke="#15180F" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="96" y="92" width="48" height="40" rx="3" fill="#15180F"/>
+  <circle cx="120" cy="112" r="11" fill="none" stroke="#D6A84A" stroke-width="2.5"/>
+  <path d="M100 84v60" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".3"/>
+</svg>

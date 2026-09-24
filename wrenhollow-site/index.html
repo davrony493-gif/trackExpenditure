@@ -123,36 +123,55 @@
             <h2 id="range-title">The range</h2>
             <p class="lede">Ales and cider from the brewhouse, spirits from the copper stills. It all starts with barley grown around the barn.</p>
           </header>
+          <div class="range-filters" role="group" aria-label="Filter the range">
+            <button type="button" class="filter" data-filter="all" aria-pressed="true">All</button>
+            <button type="button" class="filter" data-filter="beer" aria-pressed="false">Beer</button>
+            <button type="button" class="filter" data-filter="cider" aria-pressed="false">Cider</button>
+            <button type="button" class="filter" data-filter="spirits" aria-pressed="false">Spirits</button>
+          </div>
+          <p class="sr-only" id="range-count" role="status" aria-live="polite"></p>
           <div class="range-grid" id="range-grid">
-            <article class="card">
-              <span class="card-glyph" aria-hidden="true">◐</span>
-              <p class="kind">Cask pale ale · 4.2%</p><h3>Hollow Pale</h3><p>Local barley, bright hops, a soft bitter finish.</p>
-              <p class="price">£4.80 pint</p>
+            <article class="card" data-category="beer">
+              <img class="card-img" src="assets/products/hollow-pale.svg" alt="Illustration of a pint of pale ale" width="240" height="180" loading="lazy" decoding="async">
+              <p class="kind">Beer · Cask pale ale</p><h3>Hollow Pale</h3>
+              <p>Local barley, bright hops, a soft bitter finish.</p>
+              <p class="notes"><span>Tasting notes</span> Lemon peel, fresh bread, a little pine.</p>
+              <dl class="facts"><div><dt>ABV</dt><dd>4.2%</dd></div><div><dt>Price</dt><dd>£4.80 pint</dd></div></dl>
             </article>
-            <article class="card">
-              <span class="card-glyph" aria-hidden="true">●</span>
-              <p class="kind">Oatmeal stout · 5.4%</p><h3>Wren’s Nest Stout</h3><p>Roasted malt, cocoa and a creamy, dry finish.</p>
-              <p class="price">£5.20 pint</p>
+            <article class="card" data-category="beer">
+              <img class="card-img" src="assets/products/wrens-nest-stout.svg" alt="Illustration of a pint of oatmeal stout" width="240" height="180" loading="lazy" decoding="async">
+              <p class="kind">Beer · Oatmeal stout</p><h3>Wren’s Nest Stout</h3>
+              <p>Roasted malt, cocoa and a creamy, dry finish.</p>
+              <p class="notes"><span>Tasting notes</span> Dark chocolate, cold coffee, toasted oats.</p>
+              <dl class="facts"><div><dt>ABV</dt><dd>5.4%</dd></div><div><dt>Price</dt><dd>£5.20 pint</dd></div></dl>
             </article>
-            <article class="card">
-              <span class="card-glyph" aria-hidden="true">◒</span>
-              <p class="kind">Dry cider · 5.8%</p><h3>Orchard Gate</h3><p>Pressed from the trees behind the warehouse.</p>
-              <p class="price">£5.00 pint</p>
+            <article class="card" data-category="cider">
+              <img class="card-img" src="assets/products/orchard-gate.svg" alt="Illustration of a glass of cider with an apple" width="240" height="180" loading="lazy" decoding="async">
+              <p class="kind">Cider · Dry</p><h3>Orchard Gate</h3>
+              <p>Pressed from the trees behind the warehouse.</p>
+              <p class="notes"><span>Tasting notes</span> Crisp green apple, hay, a clean tannic bite.</p>
+              <dl class="facts"><div><dt>ABV</dt><dd>5.8%</dd></div><div><dt>Price</dt><dd>£5.00 pint</dd></div></dl>
             </article>
-            <article class="card">
-              <span class="card-glyph" aria-hidden="true">✦</span>
-              <p class="kind">Copper-pot gin · 42%</p><h3>Alder River Gin</h3><p>Juniper, apple blossom, meadowsweet and river mint.</p>
-              <p class="price">£38 / 70cl</p>
+            <article class="card" data-category="spirits">
+              <img class="card-img" src="assets/products/alder-river-gin.svg" alt="Illustration of a bottle of gin with juniper berries" width="240" height="180" loading="lazy" decoding="async">
+              <p class="kind">Spirits · Copper-pot gin</p><h3>Alder River Gin</h3>
+              <p>Juniper, apple blossom, meadowsweet and river mint.</p>
+              <p class="notes"><span>Tasting notes</span> Bright juniper, soft florals, a cool mint finish.</p>
+              <dl class="facts"><div><dt>ABV</dt><dd>42%</dd></div><div><dt>Price</dt><dd>£38 / 70cl</dd></div></dl>
             </article>
-            <article class="card">
-              <span class="card-glyph" aria-hidden="true">◆</span>
-              <p class="kind">Cask-aged malt spirit · 46%</p><h3>Copperhead Malt</h3><p>Double-distilled from our own ale wash, rested in ex-stout casks.</p>
-              <p class="price">£52 / 70cl</p>
+            <article class="card" data-category="spirits">
+              <img class="card-img" src="assets/products/copperhead-malt.svg" alt="Illustration of a bottle of malt spirit" width="240" height="180" loading="lazy" decoding="async">
+              <p class="kind">Spirits · Cask-aged malt spirit</p><h3>Copperhead Malt</h3>
+              <p>Double-distilled from our own ale wash, rested in ex-stout casks.</p>
+              <p class="notes"><span>Tasting notes</span> Malt loaf, cocoa nib, warm oak and spice.</p>
+              <dl class="facts"><div><dt>ABV</dt><dd>46%</dd></div><div><dt>Price</dt><dd>£52 / 70cl</dd></div></dl>
             </article>
-            <article class="card">
-              <span class="card-glyph" aria-hidden="true">✺</span>
-              <p class="kind">Barrel-aged barley wine · 10%</p><h3>Ember Reserve</h3><p>Aged in spirit casks. Toffee, dried fig, a little smoke.</p>
-              <p class="price">£14 / 375ml</p>
+            <article class="card" data-category="beer">
+              <img class="card-img" src="assets/products/ember-reserve.svg" alt="Illustration of a small bottle of barley wine with an ear of barley" width="240" height="180" loading="lazy" decoding="async">
+              <p class="kind">Beer · Barrel-aged barley wine</p><h3>Ember Reserve</h3>
+              <p>Aged in spirit casks. Toffee, dried fig, a little smoke.</p>
+              <p class="notes"><span>Tasting notes</span> Toffee, dried fig, orange marmalade, a wisp of smoke.</p>
+              <dl class="facts"><div><dt>ABV</dt><dd>10%</dd></div><div><dt>Price</dt><dd>£14 / 375ml</dd></div></dl>
             </article>
           </div>
           <p class="fine">Sample products and prices for this demo.</p>
@@ -171,6 +190,12 @@
               <h3>Tasting Flight</h3>
               <div class="meta"><span>45 min</span><strong>£18</strong></div>
               <p>Six pours at the bar with a host: three beers, the cider and two spirits.</p>
+              <ul class="included" aria-label="What’s included">
+                <li>Six tasting pours with a host</li>
+                <li>Tasting notes card to take home</li>
+                <li>Water and a bowl of bar snacks</li>
+              </ul>
+              <p class="age">18+ only. Photo ID may be checked.</p>
               <a class="btn btn-ghost" href="#visit" data-tour="Tasting Flight">Book this</a>
             </article>
             <article class="tour is-featured">
@@ -178,15 +203,28 @@
               <h3>Still House Tour</h3>
               <div class="meta"><span>90 min</span><strong>£32</strong></div>
               <p>Walk the whole route in the film: brewhouse, stills, warehouse and bottling line. Ends with a flight.</p>
+              <ul class="included" aria-label="What’s included">
+                <li>Guided walk of all four rooms</li>
+                <li>The Tasting Flight at the end</li>
+                <li>10% off bottles in the shop that day</li>
+              </ul>
+              <p class="age">18+ only. Photo ID may be checked.</p>
               <a class="btn btn-primary" href="#visit" data-tour="Still House Tour">Book this</a>
             </article>
             <article class="tour">
               <h3>Barrel Room Masterclass</h3>
               <div class="meta"><span>2 hrs</span><strong>£65</strong></div>
               <p>Taste straight from the cask with the distiller and fill your own 20cl bottle.</p>
+              <ul class="included" aria-label="What’s included">
+                <li>Five cask samples with the distiller</li>
+                <li>Your own hand-filled 20cl bottle</li>
+                <li>A ploughman’s board</li>
+              </ul>
+              <p class="age">18+ only. Photo ID may be checked.</p>
               <a class="btn btn-ghost" href="#visit" data-tour="Barrel Room Masterclass">Book this</a>
             </article>
           </div>
+          <p class="fine">Tours run Wednesday to Sunday, for up to 6 guests per booking. Sample details for this demo.</p>
         </div>
       </section>
 
@@ -197,11 +235,10 @@
             <h2 id="process-title">From field to bottle, in one barn</h2>
           </header>
           <ol class="process" id="process-list">
-            <li><span class="n">01</span><h3>Grain</h3><p>Barley from the fields around the barn, malted nearby.</p></li>
-            <li><span class="n">02</span><h3>Mash &amp; ferment</h3><p>Brewed in the brewhouse. Some of it becomes ale, some becomes wash.</p></li>
-            <li><span class="n">03</span><h3>Copper</h3><p>The wash is run twice through the copper pot still and cut by hand.</p></li>
-            <li><span class="n">04</span><h3>Oak</h3><p>Spirit and strong ales rest in casks in the riverside warehouse.</p></li>
-            <li><span class="n">05</span><h3>Bottle</h3><p>Filled, sealed and numbered on the bottling line.</p></li>
+            <li><span class="n">01</span><h3>Grain &amp; mash</h3><p>Barley from the fields around the barn is malted nearby, then mashed with river-fed water in the brewhouse.</p></li>
+            <li><span class="n">02</span><h3>Ferment</h3><p>Yeast turns the sweet wort into ale for the bar, or into wash for the still.</p></li>
+            <li><span class="n">03</span><h3>Distil</h3><p>The wash runs twice through the copper pot still, and the distiller cuts the heart of each run by hand.</p></li>
+            <li><span class="n">04</span><h3>Age &amp; bottle</h3><p>Spirit and strong ales rest in oak by the river, then are filled, sealed and numbered on the bottling line.</p></li>
           </ol>
         </div>
       </section>
@@ -221,7 +258,29 @@
                 <tr><th scope="row">Mon – Tue</th><td>Closed</td></tr>
               </tbody>
             </table>
-            <p class="fine" id="visit-note">Sample opening hours for this demo.</p>
+            <p class="fine" id="visit-note">Sample opening hours and visitor details for this demo.</p>
+            <figure class="visit-map">
+              <img src="assets/map.svg" width="640" height="400" loading="lazy" decoding="async" alt="Illustrative map: Wrenhollow Barn is on Mill Lane beside the river Alder, with the car park next to the barn. The Mill Lane bus stop (route 42) is a 5-minute walk away, and Alder Vale station is 1.2 miles away along the riverside footpath.">
+            </figure>
+            <div class="visit-details">
+              <section aria-labelledby="getting-here">
+                <h3 id="getting-here">Getting here</h3>
+                <ul>
+                  <li><strong>Car:</strong> free car park beside the barn (30 spaces), including 2 accessible bays by the door.</li>
+                  <li><strong>Bus:</strong> route 42 from Alder Vale to the Mill Lane stop, then a 5-minute walk.</li>
+                  <li><strong>Train:</strong> Alder Vale station is 1.2 miles away: about 25 minutes on the riverside footpath.</li>
+                  <li><strong>Bike:</strong> covered racks by the tasting-room door.</li>
+                </ul>
+              </section>
+              <section aria-labelledby="access">
+                <h3 id="access">Accessibility</h3>
+                <ul>
+                  <li>Step-free entrance, tasting room and bar, with an accessible toilet.</li>
+                  <li>The still house and barrel warehouse have uneven floors. Ask for the step-free route when you book a tour.</li>
+                  <li>Seating is available on every tour. Assistance dogs are welcome.</li>
+                </ul>
+              </section>
+            </div>
           </div>
           <!-- To take real requests: create a form at formspree.io and add its endpoint as the action,
                e.g. action="https://formspree.io/f/abcdwxyz". With no endpoint the form runs as a demo. -->

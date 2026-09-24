@@ -410,6 +410,9 @@ http.createServer((req, res) => {
   }
   if (pathname === "/api/chat" && req.method === "POST") return void handleChat(req, res);
   if (pathname.startsWith("/api/")) return json(res, 404, { error: "Not found" });
+  // The booking form posts here only when JavaScript is off and no Formspree endpoint is set: it's a demo, so
+  // drop the data and send the visitor back to the form (which says nothing is sent).
+  if (pathname === "/" && req.method === "POST") { req.resume(); res.writeHead(303, { location: "/#booking" }); return res.end(); }
   if (req.method !== "GET" && req.method !== "HEAD") { res.writeHead(405).end(); return; }
   serveStatic(req, res);
 }).listen(PORT, HOST, () => {

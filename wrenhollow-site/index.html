@@ -223,27 +223,35 @@
             </table>
             <p class="fine" id="visit-note">Sample opening hours for this demo.</p>
           </div>
-          <form class="booking" id="booking" novalidate>
+          <!-- To take real requests: create a form at formspree.io and add its endpoint as the action,
+               e.g. action="https://formspree.io/f/abcdwxyz". With no endpoint the form runs as a demo. -->
+          <form class="booking" id="booking" method="post">
             <h3>Book a tasting</h3>
             <p class="demo-flag" role="note">Demo form: nothing is sent yet. Connect a booking service before launch.</p>
             <div class="field">
               <label for="b-name">Name</label>
-              <input id="b-name" name="name" autocomplete="name" required>
+              <input id="b-name" name="name" autocomplete="name" required minlength="2" maxlength="80" aria-describedby="b-name-error">
+              <p class="field-error" id="b-name-error" hidden></p>
             </div>
             <div class="field">
               <label for="b-email">Email</label>
-              <input id="b-email" name="email" type="email" autocomplete="email" required>
+              <input id="b-email" name="email" type="email" autocomplete="email" required maxlength="120" aria-describedby="b-email-error">
+              <p class="field-error" id="b-email-error" hidden></p>
             </div>
             <div class="field-row">
               <div class="field">
                 <label for="b-date">Date</label>
-                <input id="b-date" name="date" type="date" required>
+                <input id="b-date" name="date" type="date" required aria-describedby="b-date-hint b-date-error">
+                <p class="field-hint" id="b-date-hint">Open Wednesday to Sunday</p>
+                <p class="field-error" id="b-date-error" hidden></p>
               </div>
               <div class="field">
                 <label for="b-guests">Guests</label>
-                <select id="b-guests" name="guests">
+                <select id="b-guests" name="guests" required aria-describedby="b-guests-hint b-guests-error">
                   <option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option>
                 </select>
+                <p class="field-hint" id="b-guests-hint">Up to 6 per booking</p>
+                <p class="field-error" id="b-guests-error" hidden></p>
               </div>
             </div>
             <div class="field">
@@ -255,7 +263,7 @@
               </select>
             </div>
             <button class="btn btn-primary btn-block" type="submit">Request booking</button>
-            <p class="form-status" id="booking-status" role="status" aria-live="polite"></p>
+            <div class="form-status" id="booking-status" role="status" aria-live="polite"></div>
           </form>
         </div>
       </section>

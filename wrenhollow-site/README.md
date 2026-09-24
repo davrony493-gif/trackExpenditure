@@ -176,4 +176,8 @@ master. No separate mobile video exists.
 ## Before launch
 
 - Replace the placeholder products, prices, hours and address in `index.html`.
-- Connect the booking form to a real service (it's clearly marked as a demo and never claims to send).
+- Connect the booking form to a real service. It's a demo until you do, and says so. With
+  [Formspree](https://formspree.io) (free tier): create a form, then add its endpoint to the form in `index.html`:
+  `<form class="booking" id="booking" method="post" action="https://formspree.io/f/your-id">`. Requests then arrive
+  by email, with or without JavaScript. Also remove the "Demo form" note above the fields. Signed-in members' requests
+  still go to their account (Supabase) when member accounts are on.

@@ -251,7 +251,7 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
 .hours th, .hours td { text-align: left; padding: 10px 0; border-bottom: 1px solid var(--line-light); font-weight: 500; }
 .hours td { text-align: right; color: var(--text-muted-dark); }
 
-.booking { background: var(--ink); color: var(--text-light); border-radius: calc(var(--radius) + 4px); padding: clamp(24px, 4vw, 40px); display: grid; gap: 16px; }
+.booking { color-scheme: dark; background: var(--ink); color: var(--text-light); border-radius: calc(var(--radius) + 4px); padding: clamp(24px, 4vw, 40px); display: grid; gap: 16px; }
 .booking h3 { font-size: 1.8rem; }
 .demo-flag { font-size: .85rem; color: var(--barley); background: rgba(214,168,74,.1); border: 1px solid rgba(214,168,74,.3); padding: 10px 12px; border-radius: var(--radius-sm); }
 .field { display: grid; gap: 6px; }
@@ -265,6 +265,12 @@ html:not(.fly) .flight .stage-ui { position: absolute; top: calc(var(--header-h)
 .field input:focus, .field select:focus { border-color: var(--copper); outline: none; box-shadow: 0 0 0 3px rgba(184,115,58,.3); }
 .field input[aria-invalid="true"] { border-color: #D06A5A; }
 .form-status { min-height: 1.4em; font-size: .9rem; color: var(--barley); }
+.form-status.is-success { padding: 12px 14px; border-radius: var(--radius-sm); border: 1px solid rgba(214,168,74,.45); background: rgba(214,168,74,.12); color: var(--text-light); }
+.form-status.is-error { color: #F0A08F; }
+.field-hint { font-size: .8rem; color: var(--text-muted-light); }
+.field-error { font-size: .85rem; font-weight: 600; color: #F0A08F; }
+.field-error[hidden] { display: none; }
+.field select[aria-invalid="true"] { border-color: #D06A5A; }
 
 .site-footer { background: var(--ink); color: var(--text-muted-light); padding: 72px 0 calc(40px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line-dark); }
 .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 40px; }

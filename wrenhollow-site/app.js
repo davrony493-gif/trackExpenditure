@@ -452,44 +452,91 @@
     menuMQ.addEventListener("change", (e) => { if (!e.matches && !menu.hidden) shut(false); });
   }
 
-  /* ---------------- Booking form (demo) ---------------- */
+  /* ---------------- Booking form ----------------
+   * Validates name, email, a future opening day and 1–6 guests, with a message under each field.
+   * Where it goes: signed-in members → their account (account.js); a Formspree endpoint in the form's
+   * action → Formspree; otherwise it's a demo and says so. */
+  const localISO = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const parseISO = (v) => { const [y, m, d] = v.split("-").map(Number); return new Date(y, m - 1, d); };
+  const CLOSED_DAYS = [1, 2]; // Monday, Tuesday (see the opening hours)
+
   function initForm() {
-    const form = $("#booking"), status = $("#booking-status");
-    const date = $("#b-date");
-    date.min = new Date().toISOString().slice(0, 10);
+    const form = $("#booking"), status = $("#booking-status"), submit = form.querySelector("[type=submit]");
+    const f = { name: $("#b-name"), email: $("#b-email"), date: $("#b-date"), guests: $("#b-guests"), tour: $("#b-tour") };
+    form.noValidate = true; // JS shows its own messages; without JS the browser's built-in checks still apply
+    f.date.min = localISO(new Date());
+    const endpoint = /^https:\/\//.test(form.getAttribute("action") || "") ? form.getAttribute("action") : "";
+    let tried = false;
+
+    const rules = {
+      name: (v) => (v.trim().length < 2 ? "Please enter your name." : ""),
+      email: (v) => (!v.trim() ? "Please enter your email address."
+        : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? "Please enter a valid email address, like name@example.com." : ""),
+      date: (v) => {
+        if (!v) return "Please choose a date.";
+        if (v < localISO(new Date())) return "That date has passed. Please choose today or a later date.";
+        if (CLOSED_DAYS.includes(parseISO(v).getDay())) return "We’re closed on Mondays and Tuesdays. Please choose Wednesday to Sunday.";
+        return "";
+      },
+      guests: (v) => { const n = Number(v); return Number.isInteger(n) && n >= 1 && n <= 6 ? "" : "Bookings are for 1 to 6 guests."; },
+    };
+    function check(key) {
+      const msg = rules[key](f[key].value), err = $(`#b-${key}-error`);
+      f[key].setAttribute("aria-invalid", msg ? "true" : "false");
+      err.textContent = msg; err.hidden = !msg;
+      return !msg;
+    }
+    for (const key of Object.keys(rules)) {
+      f[key].addEventListener(key === "date" || key === "guests" ? "change" : "blur", () => { if (tried) check(key); });
+      f[key].addEventListener("input", () => { if (tried && f[key].getAttribute("aria-invalid") === "true") check(key); });
+    }
+    function show(msg, kind) {
+      status.className = "form-status" + (kind ? ` is-${kind}` : "");
+      status.textContent = msg;
+    }
+
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      let firstBad = null;
-      for (const f of form.querySelectorAll("[required]")) {
-        const bad = !f.checkValidity();
-        f.setAttribute("aria-invalid", bad ? "true" : "false");
-        if (bad && !firstBad) firstBad = f;
+      tried = true;
+      const bad = Object.keys(rules).filter((key) => !check(key));
+      if (bad.length) {
+        show(bad.length === 1 ? "Please check the highlighted field." : `Please check the ${bad.length} highlighted fields.`, "error");
+        f[bad[0]].focus();
+        return;
       }
-      if (firstBad) { status.textContent = "Please fill in your name, a valid email and a date."; firstBad.focus(); return; }
+      const booking = { name: f.name.value.trim(), email: f.email.value.trim(), date: f.date.value, guests: Number(f.guests.value), experience: f.tour.value };
+      const when = parseISO(booking.date).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+      const summary = `${booking.experience} on ${when} for ${booking.guests} ${booking.guests === 1 ? "guest" : "guests"}`;
+      const first = booking.name.split(/\s+/)[0];
 
-      // Member accounts on (account.js): logged-in members save a real booking request.
+      // Member accounts on (account.js): signed-in members save the request to their account.
       const acct = window.wrenAccount;
       if (acct && acct.isSignedIn()) {
-        const submit = form.querySelector("[type=submit]");
-        submit.disabled = true;
-        status.textContent = "Sending your request…";
-        const res = await acct.submitBooking({
-          experience: $("#b-tour").value,
-          date: date.value,
-          guests: Number($("#b-guests").value),
-        });
+        submit.disabled = true; show("Sending your request…");
+        const res = await acct.submitBooking({ experience: booking.experience, date: booking.date, guests: booking.guests });
         submit.disabled = false;
-        status.textContent = res.ok
-          ? "Request saved! You'll see it in My account, where its status changes once the team confirms it."
-          : res.error;
+        return res.ok ? show(`Thanks, ${first}! Your request for the ${summary} is saved. You’ll see it in My account, and its status changes once the team confirms it.`, "success")
+          : show(res.error, "error");
+      }
+      // Formspree (or any endpoint that accepts a JSON POST and answers with JSON).
+      if (endpoint) {
+        submit.disabled = true; show("Sending your request…");
+        try {
+          const r = await fetch(endpoint, { method: "POST", headers: { "content-type": "application/json", accept: "application/json" }, body: JSON.stringify({ ...booking, _subject: `Booking request: ${summary}` }) });
+          if (!r.ok) throw new Error(r.status);
+          form.reset(); tried = false;
+          show(`Thanks, ${first}! Your request for the ${summary} has been sent. We’ll email ${booking.email} to confirm.`, "success");
+        } catch {
+          show("Sorry, your request couldn’t be sent. Please try again in a moment.", "error");
+        } finally { submit.disabled = false; }
         return;
       }
       if (acct) {
-        status.textContent = "Please log in or create an account to send a booking request.";
-        acct.openSignIn(form.querySelector("[type=submit]"));
+        show("Please log in or create an account to send a booking request.");
+        acct.openSignIn(submit);
         return;
       }
-      status.textContent = "Demo only: this request was not sent. Connect a booking service to take real bookings.";
+      show(`Thanks, ${first}! Your request for the ${summary} is noted. This is a demo, so nothing was sent and no booking was made.`, "success");
     });
   }
 

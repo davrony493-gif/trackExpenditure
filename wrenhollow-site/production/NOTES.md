@@ -69,10 +69,16 @@ no text, logos or signage.
   run on CPU through `spandrel`), then saved at 1708×960 and reassembled into `production/flythrough-master-upscaled.mp4`.
   Flicker check: consecutive upscaled frames differ only about 10% more than the originals, which is expected from
   sharper edges, not shimmer. The original clip is kept as `production/flythrough-master.mp4`.
-- 601 frames at 20 fps, built from the upscaled master. Landscape frames are 1280×718 WebP (≈32 MB). Portrait frames
-  are 540×960 WebP (≈16 MB) and are used only by phones held upright.
+- 601 frames at 20 fps, built from the upscaled master. Landscape frames are 1280×718, portrait frames 540×960
+  (used only by phones held upright). Each comes as AVIF (used when the browser can decode it; ≈55% smaller than
+  WebP at the same size and about as fast to decode, measured in Chromium with a 4× CPU slowdown) and WebP (fallback).
+- First screen: the poster (a 540×960 crop for upright phones, ≈48 KB) is preloaded with high priority, and fonts are
+  self-hosted and preloaded. Frames only start downloading once the page has loaded and gone idle, or as soon as the
+  visitor starts scrolling, so they never compete with the first paint. A small "Loading the fly-through…" pill shows
+  until the first frame is on screen, and again if scrolling outruns the download.
 - Loading: the browser downloads the whole sequence once in the background (nearest frames first; skipped with Data
-  Saver) and decodes only frames near the current position. On a simulated phone (4× CPU slowdown, 10 Mbps),
+  Saver) and decodes only frames near the current position. On phones the decode window (24 ahead, 8 behind) stays
+  inside the 36-frame memory budget, so frames aren't evicted and decoded again while still needed. On a simulated phone (4× CPU slowdown, 10 Mbps),
   380 of 601 frames arrived within 8 s on the first screen, and fast jumps showed the right frame within about 0.2 s.
 - The portrait crop eases right (focus 0.72) from 10 to 12.5 s so the distiller at the valve stays in frame.
   The same focus is stored in `content.js` (the `valve` beat) and baked into the portrait sequence by

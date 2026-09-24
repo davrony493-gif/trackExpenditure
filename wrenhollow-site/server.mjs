@@ -6,6 +6,7 @@
 // The API key stays on this server; the browser only talks to /api/chat.
 import http from "node:http";
 import fs from "node:fs";
+import zlib from "node:zlib";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -311,8 +312,8 @@ async function handleChat(req, res) {
 /* ---------------- Static files ---------------- */
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
-  ".mjs": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".svg": "image/svg+xml",
-  ".webp": "image/webp", ".png": "image/png", ".jpg": "image/jpeg", ".mp4": "video/mp4", ".md": "text/plain; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8", ".webmanifest": "application/manifest+json", ".json": "application/json; charset=utf-8", ".svg": "image/svg+xml",
+  ".webp": "image/webp", ".avif": "image/avif", ".woff2": "font/woff2", ".ico": "image/x-icon", ".txt": "text/plain; charset=utf-8", ".png": "image/png", ".jpg": "image/jpeg", ".mp4": "video/mp4", ".md": "text/plain; charset=utf-8",
 };
 const PRIVATE = new Set(["server.mjs", "package.json", "package-lock.json", "node_modules", ".env", "supabase"]);
 
@@ -341,6 +342,20 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
 }
 const SUPABASE_BUNDLE = path.join(ROOT, "node_modules/@supabase/supabase-js/dist/umd/supabase.js");
 
+// Text files are compressed once (brotli or gzip) and kept in memory; images and frames are already compressed.
+const COMPRESSIBLE = new Set([".html", ".css", ".js", ".mjs", ".json", ".svg", ".txt", ".webmanifest", ".md"]);
+const compressed = new Map(); // `${file}|${enc}` -> { mtime, buf }
+function compressedBody(file, st, enc) {
+  const key = `${file}|${enc}`, hit = compressed.get(key);
+  if (hit && hit.mtime === st.mtimeMs) return hit.buf;
+  const raw = fs.readFileSync(file);
+  const buf = enc === "br"
+    ? zlib.brotliCompressSync(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 10, [zlib.constants.BROTLI_PARAM_SIZE_HINT]: raw.length } })
+    : zlib.gzipSync(raw, { level: 9 });
+  compressed.set(key, { mtime: st.mtimeMs, buf });
+  return buf;
+}
+
 function serveStatic(req, res) {
   let rel;
   try { rel = decodeURIComponent(new URL(req.url, "http://x").pathname); } catch { res.writeHead(400).end(); return; }
@@ -350,12 +365,21 @@ function serveStatic(req, res) {
   if (!file.startsWith(ROOT + path.sep) || PRIVATE.has(top) || top.startsWith(".")) { res.writeHead(404).end("Not found"); return; }
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) { res.writeHead(404).end("Not found"); return; }
+    const ext = path.extname(file).toLowerCase();
+    const accept = String(req.headers["accept-encoding"] || "");
+    const enc = !COMPRESSIBLE.has(ext) ? null : /\bbr\b/.test(accept) ? "br" : /\bgzip\b/.test(accept) ? "gzip" : null;
+    const body = enc ? compressedBody(file, st, enc) : null;
     res.writeHead(200, {
-      "content-type": TYPES[path.extname(file).toLowerCase()] || "application/octet-stream",
-      "content-length": st.size,
-      "cache-control": rel.startsWith("/frames/") ? "public, max-age=31536000, immutable" : "no-cache",
+      "content-type": TYPES[ext] || "application/octet-stream",
+      "content-length": body ? body.length : st.size,
+      ...(enc ? { "content-encoding": enc } : {}),
+      ...(COMPRESSIBLE.has(ext) ? { vary: "accept-encoding" } : {}),
+      // Frames are fetched with ?v=<version>, so they can be cached for good. Other assets for a week, pages always revalidate.
+      "cache-control": rel.startsWith("/frames/") ? "public, max-age=31536000, immutable"
+        : rel.startsWith("/assets/") ? "public, max-age=604800" : "no-cache",
     });
     if (req.method === "HEAD") return res.end();
+    if (body) return res.end(body);
     fs.createReadStream(file).pipe(res);
   });
 }

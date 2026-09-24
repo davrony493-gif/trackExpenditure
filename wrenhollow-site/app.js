@@ -118,10 +118,9 @@
     fetching: new Map(),        // idx -> AbortController
     decoding: new Set(),
     failures: new Map(),
-    maxBitmaps: 72, maxFetch: 6, maxDecode: 3, background: true,
+    maxBitmaps: 72, maxFetch: 6, maxDecode: 3, background: true, ahead: 36, behind: 12,
     current: 0, dir: 1, drawn: -1, drawnFocus: -1, dirty: true,
   };
-  const NEAR_AHEAD = 36, NEAR_BEHIND = 12;
 
   function frameUrl(i) {
     const num = String(i + (frames.manifest.start || 0)).padStart(frames.manifest.pad || 4, "0");
@@ -145,9 +144,9 @@
   /** Frames to have decoded right now: the current one, then ahead in the scroll direction, then just behind. */
   function nearWindow() {
     const c = frames.current, d = frames.dir, n = frames.count, out = [c];
-    for (let k = 1; k <= NEAR_AHEAD; k++) {
+    for (let k = 1; k <= frames.ahead; k++) {
       out.push(c + d * k);
-      if (k <= NEAR_BEHIND) out.push(c - d * k);
+      if (k <= frames.behind) out.push(c - d * k);
     }
     return out.filter((i) => i >= 0 && i < n);
   }
@@ -254,6 +253,20 @@
     if (!stage.classList.contains("is-live")) stage.classList.add("is-live");
   }
 
+  /* ---------------- Loading indicator ----------------
+   * Shown until the first frame is on screen, and again if scrolling outruns the download
+   * (the frame on screen is well behind where the scroll says it should be). */
+  const loading = $(".stage-loading", stage), loadingText = $(".stage-loading-text", stage);
+  let loadingOn = false;
+  function updateLoading() {
+    const waiting = !frames.manifest ? !stage.classList.contains("is-live") && !!frames.wanted
+      : frames.drawn < 0 || Math.abs(frames.drawn - frames.current) > 8;
+    if (waiting === loadingOn) return;
+    loadingOn = waiting;
+    loading.classList.toggle("is-on", waiting);
+    loadingText.textContent = waiting ? "Loading the fly-through…" : "";
+  }
+
   /* ---------------- Render loop ---------------- */
   let raf = 0;
   function requestDraw() { if (!raf) raf = requestAnimationFrame(render); }
@@ -290,6 +303,7 @@
     }
     stage.dataset.side = activeSide;
     stage.classList.toggle("is-moving", pos > 0.15);
+    updateLoading();
     progressBar.style.transform = `scaleX(${(pos / timeline.total).toFixed(4)})`;
   }
 
@@ -303,11 +317,46 @@
     resetFrames();
   }
 
+  /** Frames load after the page has painted and gone idle (or as soon as the visitor starts scrolling),
+   * so they never compete with the poster, fonts and copy for the first screen. */
+  function afterFirstPaint() {
+    return new Promise((resolve) => {
+      let done = false;
+      const go = () => {
+        if (done) return;
+        done = true;
+        for (const t of ["scroll", "touchstart", "keydown", "wheel"]) removeEventListener(t, go);
+        resolve();
+      };
+      for (const t of ["scroll", "touchstart", "keydown", "wheel"]) addEventListener(t, go, { passive: true, once: true });
+      const idle = () => ("requestIdleCallback" in window ? requestIdleCallback(go, { timeout: 1500 }) : setTimeout(go, 300));
+      if (document.readyState === "complete") idle(); else addEventListener("load", idle, { once: true });
+    });
+  }
+
+  /** AVIF frames are ~55% smaller than WebP at the same size; use them where the browser can decode them. */
+  const AVIF_PROBE = "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAAD5bWV0YQAAAAAAAAAvaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAFBpY3R1cmVIYW5kbGVyAAAAAA5waXRtAAAAAAABAAAAHmlsb2MAAAAARAAAAQABAAAAAQAAASEAAAAWAAAAKGlpbmYAAAAAAAEAAAAaaW5mZQIAAAAAAQAAYXYwMUNvbG9yAAAAAGppcHJwAAAAS2lwY28AAAAUaXNwZQAAAAAAAAACAAAAAgAAABBwaXhpAAAAAAMICAgAAAAMYXYxQ4EADAAAAAATY29scm5jbHgAAgACAAIAAAAAF2lwbWEAAAAAAAAAAQABBAECgwQAAAAebWRhdAoFGAA2wCAyDRgAAABQAAAAALATSyg=";
+  let avifOk = null;
+  function supportsAvif() {
+    if (avifOk) return avifOk;
+    avifOk = new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(img.width > 0);
+      img.onerror = () => resolve(false);
+      img.src = AVIF_PROBE;
+    });
+    return avifOk;
+  }
+
   async function initFlight() {
     buildTimeline();
     if (reduceMotion.matches) { goStatic(); return; }
     layout();
     render();
+    await afterFirstPaint();
+    if (isStatic()) return;
+    frames.wanted = true;
+    updateLoading();
     try {
       const url = C.flight.manifest;
       const r = await fetch(url, { cache: "no-cache" });
@@ -317,12 +366,18 @@
       const needsFocus = C.flight.beats.some((b) => b.focus != null && b.focus !== 0.5);
       const usePortrait = phoneMQ.matches && portraitMQ.matches && m.portrait && (m.portrait.focusBaked || !needsFocus);
       const seq = usePortrait ? m.portrait : m;
-      frames.manifest = { ...seq, preCropped: usePortrait, pattern: seq.pattern || m.pattern, pad: seq.pad || m.pad, start: seq.start ?? m.start };
+      const avif = seq.avif && (await supportsAvif()) ? seq.avif : null;
+      frames.manifest = { ...seq, preCropped: usePortrait, pattern: avif ? avif.pattern : seq.pattern || m.pattern, pad: seq.pad || m.pad, start: seq.start ?? m.start };
       frames.count = seq.count;
       frames.fps = m.fps;
       frames.version = String(m.version || "1");
-      frames.base = new URL(seq.dir || m.dir || "./", new URL(url, location.href)).href;
-      frames.maxBitmaps = phoneMQ.matches || portraitMQ.matches ? 36 : 72;
+      frames.base = new URL((avif && avif.dir) || seq.dir || m.dir || "./", new URL(url, location.href)).href;
+      // Phones: fewer decoded frames in memory. The decode window stays inside that budget so nothing
+      // is evicted and decoded again while it's still needed.
+      const compact = phoneMQ.matches || portraitMQ.matches;
+      frames.maxBitmaps = compact ? 36 : 72;
+      frames.ahead = compact ? 24 : 36;
+      frames.behind = compact ? 8 : 12;
       // Respect Data Saver: only fetch frames near the current position, not the whole sequence.
       frames.background = !(navigator.connection && navigator.connection.saveData);
       frames.current = clamp(Math.round(timeAt(scrollPos()) * frames.fps), 0, frames.count - 1);
@@ -332,6 +387,8 @@
     } catch (e) {
       console.warn("[wrenhollow] fly-through frames unavailable, using stills", e);
       goStatic();
+      frames.wanted = false;
+      updateLoading();
     }
   }
 

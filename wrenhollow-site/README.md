@@ -141,6 +141,7 @@ Good to know:
 | `privacy.html` | Privacy notice (placeholder) linked from the sign-up form |
 | `server.mjs` | Node server: static files + `/api/chat` proxy to Gemini, Groq, DeepSeek or Claude |
 | `styles.css` | Design tokens and layout |
+| `assets/fonts/` | Self-hosted Fraunces and Manrope (Latin subset, SIL Open Font License) |
 | `style-tile.html` | Style tile: logo, palette, type, components, imagery direction |
 | `assets/logo-mark.svg` | Editable vector logo mark |
 | `scripts/build-frames.sh` | Builds `frames/`, the manifest, poster and chapter stills from the master video |
@@ -160,6 +161,9 @@ npm i -g ffmpeg-static ffprobe-static   # if ffmpeg isn't installed
 FFMPEG=$(which ffmpeg) FFPROBE=$(which ffprobe) scripts/build-frames.sh flythrough-master.mp4
 ```
 
+The script writes AVIF and WebP copies of every frame (browsers that can decode AVIF get it; it's about half the
+size). AVIF needs an ffmpeg built with `libaom-av1` (`ffmpeg-static` has it); without it only WebP is written.
+
 If `frames/manifest.json` is missing, or when a visitor prefers reduced motion, the site shows each
 chapter as a normal section over its still image instead of running the animation.
 
@@ -173,4 +177,3 @@ master. No separate mobile video exists.
 
 - Replace the placeholder products, prices, hours and address in `index.html`.
 - Connect the booking form to a real service (it's clearly marked as a demo and never claims to send).
-- Swap the Google Fonts link for self-hosted fonts if you need to avoid third-party requests.

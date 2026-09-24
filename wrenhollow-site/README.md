@@ -128,6 +128,21 @@ Good to know:
 - **Not a real business:** Wrenhollow's products, prices, address and privacy notice are placeholders.
   Replace them before presenting the site as a real business.
 
+## Or put it on a static host (Netlify or Cloudflare Pages)
+
+Everything except the chat assistant and member accounts is static, so the site also runs on a static host.
+Those two features need `server.mjs` and quietly stay switched off there. Render remains the full version.
+
+- **Netlify:** New site → Import from Git → pick this repo. `netlify.toml` (repo root) sets everything:
+  base `wrenhollow-site`, build `bash scripts/build-static.sh`, publish `dist`.
+- **Cloudflare Pages:** Create → Pages → Connect to Git. Set **Root directory** `wrenhollow-site`, **Build command**
+  `bash scripts/build-static.sh`, **Build output directory** `dist`.
+
+`scripts/build-static.sh` copies only public files into `dist/` (no server code, database schema, production
+masters or `.env`). `_headers` sets security headers and caching on both hosts. Use Formspree for the booking form
+there (see "Before launch"). Without JavaScript, a demo form submit on a static host shows the host's error page
+instead of returning to the form.
+
 ## Files
 
 | File | What it is |
@@ -144,6 +159,8 @@ Good to know:
 | `assets/fonts/` | Self-hosted Fraunces and Manrope (Latin subset, SIL Open Font License) |
 | `style-tile.html` | Style tile: logo, palette, type, components, imagery direction |
 | `assets/logo-mark.svg` | Editable vector logo mark |
+| `scripts/build-static.sh` | Copies the public files into `dist/` for Netlify or Cloudflare Pages |
+| `_headers` | Security and caching headers for static hosts |
 | `scripts/build-frames.sh` | Builds `frames/`, the manifest, poster and chapter stills from the master video |
 | `production/NOTES.md` | Generation log: prompts, job IDs, credits, known limitations |
 

@@ -382,7 +382,7 @@ function serveStatic(req, res) {
       ...(enc ? { "content-encoding": enc } : {}),
       ...(COMPRESSIBLE.has(ext) ? { vary: "accept-encoding" } : {}),
       // Frames are fetched with ?v=<version>, so they can be cached for good. Other assets for a week, pages always revalidate.
-      "cache-control": rel.startsWith("/frames/") ? "public, max-age=31536000, immutable"
+      "cache-control": rel.startsWith("/frames/") && rel !== "/frames/manifest.json" ? "public, max-age=31536000, immutable"
         : rel.startsWith("/assets/") ? "public, max-age=604800" : "no-cache",
     });
     if (req.method === "HEAD") return res.end();

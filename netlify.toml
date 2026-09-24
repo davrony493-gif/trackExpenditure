@@ -1,0 +1,9 @@
+# Netlify: static copy of the Wrenhollow site (the Render deploy in render.yaml is unchanged).
+# The chat assistant and member accounts need server.mjs, so on a static host they stay switched off;
+# everything else (fly-through, content, booking form via Formspree) works.
+[build]
+  base = "wrenhollow-site"
+  command = "bash scripts/build-static.sh"
+  publish = "dist"
+
+# Headers and caching live in wrenhollow-site/_headers (Cloudflare Pages reads the same file).

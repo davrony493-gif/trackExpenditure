@@ -176,6 +176,9 @@ master. No separate mobile video exists.
 ## Before launch
 
 - Replace the placeholder products, prices, hours and address in `index.html`.
+- Sharing and search: `index.html` has Open Graph/Twitter tags (share image `assets/share.jpg`, 1200×630) and
+  LocalBusiness (Brewery) structured data. Their URLs point at `https://wrenhollow.onrender.com/`; change them if
+  the site gets its own domain. Replace the made-up address and hours in the structured data too, or remove it.
 - Connect the booking form to a real service. It's a demo until you do, and says so. With
   [Formspree](https://formspree.io) (free tier): create a form, then add its endpoint to the form in `index.html`:
   `<form class="booking" id="booking" method="post" action="https://formspree.io/f/your-id">`. Requests then arrive

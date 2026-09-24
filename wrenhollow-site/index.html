@@ -6,7 +6,59 @@
   <title>Wrenhollow Brewery & Distillery</title>
   <meta name="description" content="Wrenhollow is a fictional riverside brewery and distillery. Take the fly-through from the tasting-room door to the orchards.">
   <meta name="theme-color" content="#15180F">
-  <link rel="icon" href="assets/logo-mark.svg" type="image/svg+xml">
+  <link rel="canonical" href="https://wrenhollow.onrender.com/">
+  <link rel="icon" href="favicon.ico" sizes="32x32">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+
+  <!-- Sharing previews (Open Graph for Facebook, WhatsApp, iMessage, LinkedIn…; Twitter/X card). URLs must be absolute:
+       change https://wrenhollow.onrender.com if the site moves to its own domain. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Wrenhollow Brewery &amp; Distillery">
+  <meta property="og:title" content="Wrenhollow Brewery &amp; Distillery">
+  <meta property="og:description" content="Brewed slow, distilled by the river. Fly through the barn from the tasting-room door to the orchards, then book a tasting or a still-house tour.">
+  <meta property="og:url" content="https://wrenhollow.onrender.com/">
+  <meta property="og:image" content="https://wrenhollow.onrender.com/assets/share.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Wrenhollow's red-brick barn by the river at dusk, with the words Brewed slow. Distilled by the river.">
+  <meta property="og:locale" content="en_GB">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Wrenhollow Brewery &amp; Distillery">
+  <meta name="twitter:description" content="Brewed slow, distilled by the river. Fly through the barn, then book a tasting or a still-house tour.">
+  <meta name="twitter:image" content="https://wrenhollow.onrender.com/assets/share.jpg">
+  <meta name="twitter:image:alt" content="Wrenhollow's red-brick barn by the river at dusk, with the words Brewed slow. Distilled by the river.">
+
+  <!-- Business details for search engines. Wrenhollow is fictional: replace the address and hours with real ones
+       before launch (or remove this block), so search results don't show made-up details. -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Brewery",
+    "name": "Wrenhollow Brewery & Distillery",
+    "description": "A working brewhouse and still house in a red-brick barn by the river Alder: cask ales, orchard cider and small-batch spirits, with tastings and still-house tours.",
+    "url": "https://wrenhollow.onrender.com/",
+    "image": "https://wrenhollow.onrender.com/assets/share.jpg",
+    "logo": "https://wrenhollow.onrender.com/assets/icon-512.png",
+    "priceRange": "££",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Wrenhollow Barn, Mill Lane",
+      "addressLocality": "Alder Vale",
+      "addressCountry": "GB"
+    },
+    "openingHoursSpecification": [
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Wednesday", "Thursday"], "opens": "12:00", "closes": "21:00" },
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": ["Friday", "Saturday"], "opens": "12:00", "closes": "23:00" },
+      { "@type": "OpeningHoursSpecification", "dayOfWeek": "Sunday", "opens": "12:00", "closes": "18:00" }
+    ],
+    "amenityFeature": [
+      { "@type": "LocationFeatureSpecification", "name": "Free parking", "value": true },
+      { "@type": "LocationFeatureSpecification", "name": "Step-free entrance", "value": true }
+    ]
+  }
+  </script>
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/fraunces-latin.woff2" crossorigin>
   <link rel="preload" as="font" type="font/woff2" href="assets/fonts/manrope-latin.woff2" crossorigin>
   <link rel="preload" as="image" href="assets/poster-portrait.webp" media="(max-width: 760px) and (orientation: portrait)" fetchpriority="high">
